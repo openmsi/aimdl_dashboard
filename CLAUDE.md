@@ -23,9 +23,10 @@ data streaming), Dagster (workflow orchestration)
                                         │
                                         ▼
                               ┌──────────────────┐
-                              │  FastAPI Backend  │  (optional, Phase 2)
+                              │  FastAPI Backend  │
                               │  - Girder proxy   │
-                              │  - SSE stream     │
+                              │  - PNG streaming  │
+                              │  - Folder walking │
                               └────────┬─────────┘
                                        │
                                        ▼
@@ -42,21 +43,79 @@ data streaming), Dagster (workflow orchestration)
                               ?instrument=HELIX  on Monitor 2
 ```
 
-### Phase 1 (current): Standalone React app with mock data
+### Phase 1 (complete): Standalone React app with mock data
 - Vite + React, no build-time dependencies beyond npm
 - Simulated visualization data with procedurally generated SVG plots
 - All three view modes functional
 - URL query parameter filtering for multi-monitor deployment
 
-### Phase 2 (next): Girder API integration
-- Replace mock data hook with Girder REST API polling
-- Fetch real visualization images from Girder item download URLs
-- Metadata filtering by instrument, sample position
+### Phase 2 (current): Girder API integration via FastAPI backend
+- FastAPI backend authenticates to Girder, walks folder hierarchies
+- Proxies PNG downloads so browser doesn't need Girder auth
+- Frontend fetches from backend API, falls back to mock data if unavailable
 
 ### Phase 3 (future): Real-time streaming
-- FastAPI backend with Girder polling or Kafka consumer
+- Kafka consumer via OpenMSIStream for instant notification
 - Server-Sent Events (SSE) push to frontend
-- Dagster sensor to detect new visualizations
+- Dagster sensor integration
+
+## Girder Data Portal
+
+**URL:** `https://data.htmdec.org`
+**API:** `https://data.htmdec.org/api/v1`
+**Auth:** API key via `AIMDL_API_KEY` environment variable
+**Platform:** Kitware Girder with custom plugins (forms, entries, samples, depositions)
+
+### AIMD-L Collection
+- **Collection ID:** `665de536bcc722774ce53754`
+- Contains all AIMD-L data organized by instrument
+
+### Visualization PNG Locations
+
+**HELIX** (laser shock / PDV, produced by ALPSS via OpenMSIStream):
+```
+AIMD-L / HELIX / processed / alpss / {IGSN}_alpss / {shot_folder} / *.png
+```
+Example folder name: `JHAMAB00022-01_690b972cbdbc07658446b192_0_346_2025-11-06_19-51-51_shot05_ch1`
+- IGSN extracted from parent folder: everything before `_alpss`
+- Shot metadata encoded in subfolder name (date, shot number, channel)
+
+**MAXIMA** (synchrotron XRD, produced by Dagster XRD pipeline):
+```
+AIMD-L / MAXIMA / automatic_mode / {IGSN}_{id}_{position}_{date} / raw / *.png
+```
+Example folder name: `JHXMAL00005_69c15fbb7590bb7e1ed257bc_0_765_2026-03-23_15-59-06`
+- IGSN extracted as first segment matching pattern `JH[A-Z]{4}\d{5}(-\d+)?`
+- Position encoded in folder name (e.g., `0_765`)
+- DataFlow ID `6729631c1f198818440f687d` in file metadata identifies MAXIMA
+
+**SPHINX** (nanoindentation): Not yet producing processed visualizations.
+
+### IGSN Format
+International Generic Sample Number format used in AIMD-L:
+`JH[A-Z]{4}\d{5}(-\d+)?`
+Examples: `JHAMAB00022-01`, `JHXMAL00005`
+
+### Girder API Patterns
+```python
+from girder_client import GirderClient
+client = GirderClient(apiUrl="https://data.htmdec.org/api/v1")
+client.authenticate(apiKey=os.environ["AIMDL_API_KEY"])
+
+# List items in a folder
+items = client.get("item", parameters={"folderId": folder_id, "limit": 100})
+
+# List subfolders
+subfolders = client.get("folder", parameters={
+    "parentType": "folder", "parentId": folder_id, "limit": 100
+})
+
+# Get files attached to an item
+files = client.get(f"item/{item_id}/files")
+
+# Download a file
+client.downloadFile(file_id, output_buffer)
+```
 
 ## Tech Stack
 
@@ -67,10 +126,11 @@ data streaming), Dagster (workflow orchestration)
 - Dark theme, IBM Plex Mono + IBM Plex Sans typography
 - Instrument color coding: MAXIMA=#4ECDC4, HELIX=#FF6B6B, SPHINX=#A78BFA
 
-### Backend (Phase 2+)
+### Backend
 - **FastAPI** with uvicorn
-- **girder-client** or direct REST calls to Girder API
-- SSE via `StreamingResponse`
+- **girder-client** for authenticated Girder API calls
+- PNG proxy endpoint (streams bytes, avoids CORS and auth in browser)
+- In-memory folder cache with periodic refresh
 
 ## Directory Structure
 
@@ -86,27 +146,36 @@ aimdl_dashboard/
 │   ├── index.html
 │   ├── public/
 │   └── src/
-│       ├── main.jsx              # Entry point, renders App
-│       ├── App.jsx               # Root component, routing/layout
-│       ├── config.js             # Instruments, colors, Girder URL, poll interval
+│       ├── main.jsx
+│       ├── App.jsx
+│       ├── config.js             # Instruments, colors, API URL, poll interval
 │       ├── styles/
-│       │   └── globals.css       # CSS reset, fonts, keyframes, scrollbar
+│       │   └── globals.css
 │       ├── hooks/
-│       │   └── useVizStream.js   # Data fetching: mock now, Girder later
+│       │   └── useVizStream.js   # Fetches from backend API, mock fallback
 │       └── components/
-│           ├── Dashboard.jsx         # Main dashboard container
-│           ├── MockVisualization.jsx  # SVG procedural plot generator
-│           ├── VizCard.jsx           # Individual visualization card
-│           ├── InstrumentTab.jsx     # Filter tab button
-│           ├── ViewModeSelector.jsx  # Stream/Spotlight/Sample toggle
-│           ├── SpotlightView.jsx     # Latest viz large + history strip
-│           ├── StreamView.jsx        # Grid of all viz cards
-│           ├── SampleComparisonView.jsx  # Cross-instrument by sample
-│           ├── VizDetailModal.jsx    # Click-to-expand detail overlay
-│           ├── StatusBar.jsx         # Connection status footer
-│           └── Header.jsx            # Top bar with title + view mode
-└── backend/                     # Phase 2, placeholder for now
-    └── README.md
+│           ├── Dashboard.jsx
+│           ├── MockVisualization.jsx  # SVG fallback when no real image
+│           ├── VizCard.jsx
+│           ├── InstrumentTab.jsx
+│           ├── ViewModeSelector.jsx
+│           ├── SpotlightView.jsx
+│           ├── StreamView.jsx
+│           ├── SampleComparisonView.jsx
+│           ├── VizDetailModal.jsx
+│           ├── StatusBar.jsx
+│           └── Header.jsx
+└── backend/
+    ├── pyproject.toml
+    ├── run.sh
+    └── src/
+        └── aimdl_dashboard_api/
+            ├── __init__.py
+            ├── app.py            # FastAPI app, CORS, routes
+            ├── config.py         # Girder URL, API key, folder paths
+            ├── girder_client.py  # Authenticated Girder wrapper
+            ├── models.py         # Pydantic response models
+            └── discovery.py      # Folder traversal and PNG discovery
 ```
 
 ## Coding Conventions
@@ -118,14 +187,18 @@ aimdl_dashboard/
   for keyframes, fonts, resets, and CSS custom properties only
 - **State:** React hooks only (`useState`, `useEffect`, `useCallback`, `useRef`).
   No Redux, no Zustand, no external state library.
+- **Backend:** Standard FastAPI patterns. Pydantic models for responses.
+  `girder-client` library for Girder access. No ORM, no database.
 - **No TypeScript** for now — keep the barrier to contribution low for
   materials science collaborators
 - **Comments:** Sparse, only where intent is non-obvious. No boilerplate
   comment headers.
+- **Secrets:** API keys in environment variables only. Never in code,
+  config files, or frontend bundles.
 
 ## Configuration
 
-All tunable parameters live in `frontend/src/config.js`:
+### Frontend: `frontend/src/config.js`
 
 ```js
 export const INSTRUMENTS = [
@@ -134,27 +207,18 @@ export const INSTRUMENTS = [
   { id: "SPHINX", label: "SPHINX", description: "Nanoindentation", color: "#A78BFA" },
 ];
 
-export const GIRDER_CONFIG = {
-  baseUrl: "https://girder.example.com/api/v1",  // Replace with real URL
-  vizFolderIds: {
-    MAXIMA: null,  // Girder folder IDs to be filled in
-    HELIX: null,
-    SPHINX: null,
-  },
+export const API_CONFIG = {
+  baseUrl: "http://localhost:8000/api",
   pollIntervalMs: 15000,
 };
-
-export const SAMPLE_POSITIONS = ["A1", "A2", "A3", "B1", "B2", "B3", "C1"];
-
-export const VIZ_TYPES = [
-  { name: "XRD Pattern", color: "#4ECDC4" },
-  { name: "Stress-Strain", color: "#FF6B6B" },
-  { name: "Nanoindentation", color: "#FFE66D" },
-  { name: "Pole Figure", color: "#A78BFA" },
-  { name: "Residual Stress Map", color: "#F97316" },
-  { name: "Grain Size Distribution", color: "#34D399" },
-];
 ```
+
+### Backend: environment variables
+
+| Variable        | Required | Description                          |
+|-----------------|----------|--------------------------------------|
+| `AIMDL_API_KEY` | Yes      | Girder API key for data.htmdec.org   |
+| `GIRDER_API_URL`| No       | Override (default: data.htmdec.org)  |
 
 ## URL Query Parameters
 
@@ -164,37 +228,34 @@ The dashboard reads these from `window.location.search`:
 |--------------|---------------------------------|-------------------------------------|
 | `instrument` | `MAXIMA`, `HELIX`, `SPHINX`     | Filter to single instrument         |
 | `view`       | `stream`, `spotlight`, `sample` | Set initial view mode               |
-| `sample`     | e.g. `A1`, `B2`                 | Pre-select sample in comparison     |
+| `sample`     | e.g. `JHAMAB00022-01`          | Pre-select sample in comparison     |
 | `poll`       | integer (ms)                    | Override polling interval            |
 | `kiosk`      | `true`                          | Hide header controls for wall mount |
+| `mock`       | `true`                          | Force mock data mode                |
 
 ## Deployment
 
-### Development
+### Development (both services)
 ```bash
-cd frontend
-npm install
-npm run dev
-# Opens at http://localhost:5173
+# Terminal 1: Backend
+export AIMDL_API_KEY="your-key"
+cd backend && pip install -e . && ./run.sh
+
+# Terminal 2: Frontend
+cd frontend && npm run dev
 ```
 
 ### Lab monitors (kiosk mode)
 ```bash
-# On Raspberry Pi or lab PC:
 chromium-browser --kiosk --noerrdialogs \
   "http://dashboard-host:5173/?instrument=MAXIMA&view=spotlight&kiosk=true"
 ```
 
-### Production build
-```bash
-cd frontend
-npm run build
-# Serve dist/ with any static file server (nginx, python -m http.server, etc.)
-```
-
 ## Testing
 
-No test framework configured yet. When added, use Vitest (aligned with Vite).
+- Frontend: Vitest (when added)
+- Backend: pytest
+- No test frameworks configured yet
 
 ## AI-Specific Guardrails
 
@@ -204,8 +265,11 @@ No test framework configured yet. When added, use Vitest (aligned with Vite).
 - Do NOT add React Router. URL parameters via `window.location.search`
   are sufficient for this use case.
 - Do NOT add a state management library. React hooks are sufficient.
-- Do NOT introduce build-time environment variable injection for Girder
-  config. Keep it in `config.js` so non-developers can edit it.
-- When refactoring the monolithic dashboard component into separate files,
-  preserve all visual behavior exactly — do not "improve" the styling
-  or layout unless explicitly asked.
+- Do NOT put API keys or secrets in frontend code or config files.
+  All secrets go in environment variables, accessed only by the backend.
+- Do NOT introduce build-time environment variable injection.
+  Keep `config.js` editable by non-developers.
+- When modifying existing components, preserve all visual behavior exactly
+  — do not "improve" the styling or layout unless explicitly asked.
+- Keep mock mode working as a fallback. The dashboard must be demoable
+  without Girder access.

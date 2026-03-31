@@ -26,7 +26,16 @@ export default function SpotlightView({ filtered }) {
             overflow: "hidden",
           }}
         >
-          <MockVisualization viz={latest} large />
+          {latest.imageUrl ? (
+            <img
+              src={latest.imageUrl}
+              alt={latest.vizType}
+              style={{ width: "100%", height: "100%", objectFit: "contain", background: "#0a0e17" }}
+              loading="lazy"
+            />
+          ) : (
+            <MockVisualization viz={latest} large />
+          )}
           <div style={{ padding: "16px 20px" }}>
             <div
               style={{

@@ -12,13 +12,8 @@ export const INSTRUMENT_DESCRIPTIONS = Object.fromEntries(
   INSTRUMENTS.map((i) => [i.id, i.description])
 );
 
-export const GIRDER_CONFIG = {
-  baseUrl: "https://girder.example.com/api/v1",
-  vizFolderIds: {
-    MAXIMA: null,
-    HELIX: null,
-    SPHINX: null,
-  },
+export const API_CONFIG = {
+  baseUrl: "http://localhost:8000/api",
   pollIntervalMs: 15000,
 };
 

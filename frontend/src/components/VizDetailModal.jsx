@@ -29,7 +29,15 @@ export default function VizDetailModal({ viz, onClose }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <MockVisualization viz={viz} large />
+        {viz.imageUrl ? (
+          <img
+            src={viz.imageUrl}
+            alt={viz.vizType}
+            style={{ width: "100%", height: "auto", objectFit: "contain", background: "#0a0e17" }}
+          />
+        ) : (
+          <MockVisualization viz={viz} large />
+        )}
         <div style={{ padding: "20px" }}>
           <div
             style={{
@@ -52,11 +60,11 @@ export default function VizDetailModal({ viz, onClose }) {
           >
             {[
               ["Instrument", `${viz.instrument} · ${INSTRUMENT_DESCRIPTIONS[viz.instrument]}`],
-              ["Sample Position", viz.sample],
+              ["IGSN", viz.igsn || viz.sample],
               ["Timestamp", new Date(viz.timestamp).toLocaleString()],
               ["Status", viz.status],
               ["Girder ID", `item/${viz.id}`],
-              ["Pipeline", "helix_metadata_extraction"],
+              ...(viz.folderPath ? [["Folder", viz.folderPath]] : []),
             ].map(([label, value]) => (
               <div key={label}>
                 <div style={{ color: "#3d4d6b", marginBottom: "2px" }}>
@@ -67,7 +75,10 @@ export default function VizDetailModal({ viz, onClose }) {
             ))}
           </div>
           <div style={{ marginTop: "16px", display: "flex", gap: "8px" }}>
-            <button
+            <a
+              href={`https://data.htmdec.org/#item/${viz.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 padding: "8px 16px",
                 background: "#4ECDC415",
@@ -77,10 +88,12 @@ export default function VizDetailModal({ viz, onClose }) {
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: "11px",
                 cursor: "pointer",
+                textDecoration: "none",
+                display: "inline-block",
               }}
             >
               Open in Girder →
-            </button>
+            </a>
             <button
               style={{
                 padding: "8px 16px",

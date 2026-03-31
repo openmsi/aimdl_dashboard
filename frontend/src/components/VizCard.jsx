@@ -49,7 +49,16 @@ export default function VizCard({ viz, spotlight = false, onClick }) {
         </div>
       )}
       <div style={{ aspectRatio: spotlight ? "16/9" : "16/10" }}>
-        <MockVisualization viz={viz} large={spotlight} />
+        {viz.imageUrl ? (
+          <img
+            src={viz.imageUrl}
+            alt={viz.vizType}
+            style={{ width: "100%", height: "100%", objectFit: "contain", background: "#0a0e17" }}
+            loading="lazy"
+          />
+        ) : (
+          <MockVisualization viz={viz} large={spotlight} />
+        )}
       </div>
       <div style={{ padding: spotlight ? "14px 16px" : "10px 12px" }}>
         <div

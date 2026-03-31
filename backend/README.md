@@ -1,13 +1,14 @@
 # AIMD-L Dashboard Backend
 
-Phase 2 — FastAPI service for proxying Girder API queries and (Phase 3)
-serving SSE streams of new visualizations.
+FastAPI service that authenticates to Girder, discovers visualization PNGs,
+and proxies image downloads to the frontend.
 
-Not yet implemented. The frontend currently runs standalone with mock data.
+## Setup
 
-## Planned Stack
+```bash
+export AIMDL_API_KEY="your-key"
+pip install -e .
+./run.sh
+```
 
-- FastAPI + uvicorn
-- girder-client or httpx for Girder REST API
-- SSE via StreamingResponse
-- Optional: Kafka consumer via confluent-kafka-python (Phase 3)
+API runs at http://localhost:8000. See the top-level README for full instructions.
