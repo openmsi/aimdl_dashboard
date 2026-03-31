@@ -5,6 +5,17 @@ full context.
 
 **Frontend only — no backend changes.**
 
+## GitHub Issue
+
+```bash
+gh issue create \
+  --title "feat: add zoom control for dynamic image grid scaling" \
+  --body-file issues/03-zoom-dynamic-scaling.md \
+  --label "enhancement"
+```
+
+Note the issue number returned.
+
 ## Branch
 
 ```bash
@@ -87,8 +98,6 @@ In `frontend/src/components/StreamView.jsx`:
 
 ### Step 5: Update SampleComparisonView to use zoom
 
-In `frontend/src/components/SampleComparisonView.jsx`:
-
 The three-column instrument layout should be unaffected, but the VizCards
 within each column could use the zoom level for their size. This is optional
 — only implement if it looks natural.
@@ -100,8 +109,7 @@ Add a CSS transition to the grid container so column changes feel smooth:
 transition: "all 0.3s ease"
 ```
 
-This may cause layout thrash — test and remove if it feels janky. A simple
-instant reflow is fine too.
+Test and remove if it feels janky. Instant reflow is fine too.
 
 ### Step 7: Persist zoom in URL
 
@@ -118,17 +126,53 @@ useEffect(() => {
 }, [zoom]);
 ```
 
-This goes in Dashboard.jsx.
+### Step 8: Commit, push, and create PR
+
+```bash
+git add -A
+git commit -m "feat: add zoom control for dynamic grid scaling
+
+Added a 5-level zoom control to the header bar that adjusts the grid column
+width from 500px (2 columns) down to 150px (6+ columns). Zoom level persists
+in the URL parameter ?zoom=N for kiosk configuration.
+
+Closes #ISSUE_NUMBER"
+git push -u origin feature/zoom-control
+
+gh pr create \
+  --title "feat: add zoom control for dynamic grid scaling" \
+  --body "## Summary
+
+Adds a zoom slider to the dashboard toolbar that controls visualization card
+size in the grid, from large (2 columns) to thumbnail (6+ columns).
+
+## Changes
+
+- Created \`ZoomControl\` component with +/- buttons and level indicator
+- Added zoom state to Dashboard, passed to Header and StreamView
+- StreamView grid \`minmax\` value driven by zoom level
+- Zoom persists in URL parameter \`?zoom=N\`
+
+## Testing
+
+- All 5 zoom levels produce expected column counts
+- Default level 3 matches previous behavior exactly
+- Zoom persists across page reloads via URL parameter
+- Spotlight view unaffected
+
+Closes #ISSUE_NUMBER" \
+  --base main
+```
 
 ## Verification Checklist
 
+- [ ] GitHub issue created
 - [ ] ZoomControl renders in the header bar
 - [ ] Clicking +/- changes the number of grid columns
 - [ ] Zoom level 1 shows ~2 large columns
 - [ ] Zoom level 5 shows ~6+ thumbnail columns
 - [ ] Default (level 3) matches the existing layout exactly
 - [ ] Zoom persists in URL parameter `?zoom=N`
-- [ ] Zoom reads from URL on page load (for kiosk config)
 - [ ] Spotlight view is unaffected by zoom
-- [ ] No regressions in other views or functionality
-- [ ] Commit message: "feat: add zoom control for dynamic grid scaling"
+- [ ] No regressions
+- [ ] Branch pushed, PR created and linked to issue

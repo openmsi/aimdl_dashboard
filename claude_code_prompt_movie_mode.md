@@ -3,6 +3,17 @@
 **Read CLAUDE.md first.** Then read `issues/04-sample-movie-mode.md` for
 full context.
 
+## GitHub Issue
+
+```bash
+gh issue create \
+  --title "feat: sample movie mode — animate through measurement positions" \
+  --body-file issues/04-sample-movie-mode.md \
+  --label "enhancement"
+```
+
+Note the issue number returned.
+
 ## Branch
 
 ```bash
@@ -81,7 +92,6 @@ def get_sample_visualizations(
     # Sort by position (natural sort so "0_765" < "0_1000")
     def position_sort_key(v):
         pos = v.get("position") or ""
-        # Try to extract numeric parts for natural sorting
         parts = re.findall(r'\d+', pos)
         return tuple(int(p) for p in parts) if parts else (pos,)
 
@@ -97,12 +107,8 @@ def get_sample_visualizations(
     return {"items": viz_list, "total": len(viz_list), "igsn": igsn}
 ```
 
-Note: `get_cached_visualizations` needs its `limit` increased or removed
-for this call — the movie needs ALL positions for the sample. If issue #1
-(the limit bug) has been fixed with the `_cache_by_id` approach, the
-`get_cached_visualizations` function's limit should be raised to handle
-this use case, or the sample endpoint should query `_cache["visualizations"]`
-directly filtered by IGSN.
+Note: The movie needs ALL positions for the sample. Ensure the limit is high
+enough or query `_cache["visualizations"]` directly filtered by IGSN.
 
 ### Step 3: Update models.py
 
@@ -160,22 +166,20 @@ Create `frontend/src/components/MovieView.jsx`:
 
 **State:**
 - `selectedIgsn` — which sample to show
-- `selectedInstrument` — which instrument (if sample has multiple)
-- `currentIndex` — current position in the sorted position array
+- `selectedInstrument` — which instrument
+- `currentIndex` — current position in the sorted array
 - `playing` — boolean
 - `speed` — playback speed multiplier (0.5, 1, 2, 4)
-- `frames` — computed array of viz items for the selected sample+instrument,
-  sorted by position
+- `frames` — computed array sorted by position
 
-**Sample selector:**
-Extract unique IGSNs from data, show as a dropdown or button group.
-Default to the IGSN with the most measurement positions.
+**Sample selector:** Extract unique IGSNs from data, default to the one
+with the most measurement positions.
 
 **Playback logic:**
 ```js
 useEffect(() => {
   if (!playing || frames.length === 0) return;
-  const intervalMs = 1500 / speed;  // 1.5 seconds base, adjusted by speed
+  const intervalMs = 1500 / speed;
   const timer = setInterval(() => {
     setCurrentIndex(prev => (prev + 1) % frames.length);
   }, intervalMs);
@@ -183,81 +187,100 @@ useEffect(() => {
 }, [playing, speed, frames.length]);
 ```
 
-**Keyboard shortcuts:**
-```js
-useEffect(() => {
-  function handleKey(e) {
-    if (e.code === "Space") { e.preventDefault(); setPlaying(p => !p); }
-    if (e.code === "ArrowRight") { setCurrentIndex(i => Math.min(i + 1, frames.length - 1)); }
-    if (e.code === "ArrowLeft") { setCurrentIndex(i => Math.max(i - 1, 0)); }
-    if (e.code === "ArrowUp") { setSpeed(s => Math.min(s * 2, 4)); }
-    if (e.code === "ArrowDown") { setSpeed(s => Math.max(s / 2, 0.5)); }
-  }
-  window.addEventListener("keydown", handleKey);
-  return () => window.removeEventListener("keydown", handleKey);
-}, [frames.length]);
-```
+**Keyboard shortcuts:** Space (play/pause), Left/Right (step),
+Up/Down (speed).
 
-**Image display:**
-Show the current frame's visualization large and centered. Use the same
-`<img>` / `MockVisualization` fallback pattern as VizCard. Below the image,
-show position, IGSN, instrument, and timestamp metadata.
+**Image display:** Large centered image with position/IGSN/instrument
+metadata below.
 
-**Scrubber bar:**
-A horizontal bar showing all positions as small clickable dots or segments.
-The current position is highlighted. Clicking a dot jumps to that frame.
+**Scrubber bar:** Clickable dots for each position, current highlighted.
 
-**Styling:**
-- Dark background, consistent with the rest of the dashboard
-- Playback controls in monospace font, instrument-colored accents
-- Position indicator uses a subtle progress bar
+**Styling:** Dark background, monospace font, instrument-colored accents.
 
 ### Step 7: Wire MovieView into Dashboard
 
-In `frontend/src/components/Dashboard.jsx`:
+In `Dashboard.jsx`, import MovieView and render for `viewMode === "movie"`.
+Pass the full `data` array (not `filtered`).
 
-1. Import MovieView.
-2. Add rendering for `viewMode === "movie"`:
-   ```jsx
-   {viewMode === "movie" && (
-     <MovieView data={data} />
-   )}
-   ```
-   Note: pass the full `data` array (not `filtered`), since the movie
-   view has its own sample/instrument selectors.
+### Step 8: Fetch sample-specific data
 
-### Step 8: Fetch sample-specific data (optional enhancement)
-
-If the cached data doesn't include all positions for a sample (because
-the main endpoint limits to 30 per instrument), MovieView can fetch
-directly from the sample endpoint:
-
+MovieView should fetch from the sample endpoint to get ALL positions:
 ```js
 useEffect(() => {
   if (!selectedIgsn) return;
-  const url = `${API_CONFIG.baseUrl}/visualizations/sample/${selectedIgsn}`;
-  fetch(url)
+  fetch(`${API_CONFIG.baseUrl}/visualizations/sample/${selectedIgsn}`)
     .then(res => res.json())
     .then(data => setFrames(data.items.map(mapApiViz)))
     .catch(console.error);
 }, [selectedIgsn, selectedInstrument]);
 ```
 
-This ensures the movie has ALL positions even if the main cache is limited.
+### Step 9: Commit, push, and create PR
+
+```bash
+git add -A
+git commit -m "feat: add movie mode for animating across sample positions
+
+Added a Movie view mode that lets researchers select a sample and instrument,
+then animate through measurement positions as a flipbook. Includes play/pause,
+speed control, keyboard shortcuts, and a position scrubber bar.
+
+Backend: position extraction from folder names, sample-specific API endpoint.
+Frontend: MovieView component with playback controls.
+
+Closes #ISSUE_NUMBER"
+git push -u origin feature/movie-mode
+
+gh pr create \
+  --title "feat: add movie mode for animating across sample positions" \
+  --body "## Summary
+
+New Movie view mode that animates through all measurement positions for a
+selected sample, revealing spatial variation across the sample surface.
+
+## Changes
+
+**Backend:**
+- Extract position identifiers from MAXIMA and HELIX folder names
+- Added \`position\` field to Visualization model
+- New endpoint \`GET /api/visualizations/sample/{igsn}\` returning all
+  positions sorted naturally
+
+**Frontend:**
+- Added Movie mode to ViewModeSelector
+- Created MovieView component with:
+  - Sample/instrument selectors
+  - Play/pause, forward/back, speed controls
+  - Position scrubber bar
+  - Keyboard shortcuts (Space, arrows)
+  - Large centered image display with metadata overlay
+
+## Testing
+
+- Play/pause animates through positions sequentially
+- Speed control works (0.5x through 4x)
+- Scrubber bar allows jumping to specific positions
+- Works with both MAXIMA and HELIX data
+- Handles samples with single positions gracefully
+- No regressions in other view modes
+
+Closes #ISSUE_NUMBER" \
+  --base main
+```
+
+Replace `#ISSUE_NUMBER` with the actual number.
 
 ## Verification Checklist
 
-- [ ] Position is extracted from MAXIMA folder names in discovery.py
-- [ ] Position is extracted from HELIX shot folder names
-- [ ] `/api/visualizations/sample/{igsn}` returns all positions sorted
+- [ ] GitHub issue created
+- [ ] Position extracted from MAXIMA folder names
+- [ ] Position extracted from HELIX shot folder names
+- [ ] `/api/visualizations/sample/{igsn}` returns sorted positions
 - [ ] MovieView renders with sample and instrument selectors
-- [ ] Play/pause animates through positions sequentially
-- [ ] Speed control works (0.5x through 4x)
-- [ ] Scrubber bar shows position progress and allows clicking to jump
-- [ ] Keyboard shortcuts work (Space, arrows)
-- [ ] Forward/back buttons step one frame at a time
-- [ ] Position metadata displays below the image
-- [ ] Works with both MAXIMA and HELIX data
-- [ ] Gracefully handles samples with only one position
-- [ ] No regressions in other view modes
-- [ ] Commit message: "feat: add movie mode for animating across sample positions"
+- [ ] Play/pause works
+- [ ] Speed control works
+- [ ] Scrubber bar works
+- [ ] Keyboard shortcuts work
+- [ ] Handles single-position samples gracefully
+- [ ] No regressions in other views
+- [ ] Branch pushed, PR created and linked to issue

@@ -3,9 +3,24 @@
 **Read CLAUDE.md first.** Then read `issues/01-helix-image-proxy-bug.md` for
 full context on this bug.
 
+## GitHub Issue
+
+Create the issue first (skip if it already exists):
+
+```bash
+gh issue create \
+  --title "bug: HELIX visualization PNGs fail to render — image proxy limit bug" \
+  --body-file issues/01-helix-image-proxy-bug.md \
+  --label "bug"
+```
+
+Note the issue number returned (e.g., `#1`). Use it in the PR later.
+
 ## Branch
 
 ```bash
+git checkout main
+git pull
 git checkout -b fix/helix-image-proxy
 ```
 
@@ -67,22 +82,57 @@ In `backend/src/aimdl_dashboard_api/app.py`:
        raise HTTPException(404, "Visualization not found in cache")
    ```
 
-### Step 3: Verify
+### Step 3: Commit and push
 
-1. Start the backend with `AIMDL_API_KEY` set.
-2. Wait for cache refresh to complete (check logs).
-3. From the log output, pick a HELIX item ID.
-4. Verify `curl http://localhost:8000/api/visualizations/{helix_item_id}/image`
-   returns PNG bytes (check with `file -` or `| head -c 8 | xxd`).
-5. Verify a MAXIMA item ID also works.
-6. Start the frontend — HELIX images should now render.
+```bash
+git add -A
+git commit -m "fix: resolve HELIX image proxy 404 due to cache limit bug
+
+The image proxy endpoint called get_cached_visualizations() with default
+limit=30. Since HELIX items are older than MAXIMA items, they sorted into
+positions 31-60 and were invisible to the proxy lookup. Added a _cache_by_id
+dict index for O(1) item lookup by ID.
+
+Closes #ISSUE_NUMBER"
+git push -u origin fix/helix-image-proxy
+```
+
+### Step 4: Create PR
+
+```bash
+gh pr create \
+  --title "fix: resolve HELIX image proxy 404 due to cache limit bug" \
+  --body "## Summary
+
+The image proxy endpoint called \`get_cached_visualizations()\` with a default
+limit of 30. HELIX items (older timestamps) sorted beyond position 30 and
+returned 404 when the proxy tried to look them up, causing broken images.
+
+## Changes
+
+- Added \`_cache_by_id\` dict index to \`discovery.py\` for O(1) lookup
+- Added \`get_cached_viz_by_id()\` function
+- Updated image proxy endpoint to use direct ID lookup
+
+## Testing
+
+- HELIX image proxy returns 200 with PNG bytes
+- MAXIMA image proxy still works
+- No regressions in list endpoint
+
+Closes #ISSUE_NUMBER" \
+  --base main
+```
+
+Replace `#ISSUE_NUMBER` with the actual number from Step 1.
 
 ## Verification Checklist
 
+- [ ] GitHub issue created
 - [ ] `get_cached_viz_by_id` function exists in discovery.py
 - [ ] `_cache_by_id` is populated during `refresh_cache()`
 - [ ] Image proxy uses `get_cached_viz_by_id` instead of `get_cached_visualizations`
 - [ ] HELIX image proxy returns 200 with PNG bytes
 - [ ] MAXIMA image proxy still works
 - [ ] No regressions in `/api/visualizations` list endpoint
-- [ ] Commit message: "fix: resolve HELIX image proxy 404 due to cache limit bug"
+- [ ] Branch pushed, PR created and linked to issue

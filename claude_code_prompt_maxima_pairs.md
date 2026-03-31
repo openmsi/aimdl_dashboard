@@ -3,6 +3,19 @@
 **Read CLAUDE.md first.** Then read `issues/02-maxima-scan-xrd-pairs.md` for
 full context.
 
+## GitHub Issue
+
+Create the issue first (skip if it already exists):
+
+```bash
+gh issue create \
+  --title "feat: keep MAXIMA scan/xrd PNG pairs side by side" \
+  --body-file issues/02-maxima-scan-xrd-pairs.md \
+  --label "enhancement"
+```
+
+Note the issue number returned. Use it in the PR later.
+
 ## Branch
 
 ```bash
@@ -69,9 +82,6 @@ def _pair_sort_key(item):
 results.sort(key=_pair_sort_key, reverse=True)
 ```
 
-Note: sort by created descending first (newest experiments first), then by
-pair_key and role within each timestamp group.
-
 ### Step 3: Expose pairing in the API response
 
 In `models.py`, add optional pair fields to the `Visualization` model:
@@ -122,7 +132,6 @@ function groupIntoPairs(items) {
     seen.add(items[i].id);
 
     if (items[i].pairKey) {
-      // Look for the partner in the next position (should be adjacent after sort)
       const partner = items[i + 1];
       if (partner && partner.pairKey === items[i].pairKey) {
         seen.add(partner.id);
@@ -136,8 +145,7 @@ function groupIntoPairs(items) {
 }
 ```
 
-Render paired items in a two-column sub-container that spans one grid cell
-(or two grid cells using `grid-column: span 2`):
+Render paired items spanning two grid columns:
 
 ```jsx
 {groups.map((group, gi) => (
@@ -168,39 +176,74 @@ Render paired items in a two-column sub-container that spans one grid cell
 
 ### Step 6: Add pair label overlay
 
-When a viz has `pairRole`, show a small label on the VizCard (e.g., "SCAN"
-or "XRD" in the top-right corner). This helps distinguish the two halves
-of a pair. Add this in `VizCard.jsx` alongside the existing "PROCESSING"
-badge:
+In `VizCard.jsx`, add a role badge alongside the existing "PROCESSING" badge:
 
 ```jsx
 {viz.pairRole && (
   <div style={{
-    position: "absolute",
-    top: 8,
-    right: 8,
-    zIndex: 2,
-    background: `${instColor}20`,
-    border: `1px solid ${instColor}40`,
-    borderRadius: "4px",
-    padding: "2px 8px",
-    fontSize: "9px",
+    position: "absolute", top: 8, right: 8, zIndex: 2,
+    background: `${instColor}20`, border: `1px solid ${instColor}40`,
+    borderRadius: "4px", padding: "2px 8px", fontSize: "9px",
     fontFamily: "'IBM Plex Mono', monospace",
-    color: instColor,
-    textTransform: "uppercase",
+    color: instColor, textTransform: "uppercase",
   }}>
     {viz.pairRole}
   </div>
 )}
 ```
 
+### Step 7: Commit, push, and create PR
+
+```bash
+git add -A
+git commit -m "feat: group MAXIMA scan/xrd pairs side by side
+
+MAXIMA produces paired PNGs (_scan.png and _xrd.png) for each measurement.
+Added pairing logic to the backend discovery, adjacent sorting, and
+side-by-side rendering in the frontend StreamView.
+
+Closes #ISSUE_NUMBER"
+git push -u origin feature/maxima-scan-xrd-pairs
+
+gh pr create \
+  --title "feat: group MAXIMA scan/xrd pairs side by side" \
+  --body "## Summary
+
+MAXIMA produces natural pairs of PNGs for each measurement point: a 2D detector
+scan image (\`_scan.png\`) and an integrated XRD pattern (\`_xrd.png\`). This PR
+groups them side by side in the dashboard grid.
+
+## Changes
+
+**Backend:**
+- Added \`_extract_pair_info()\` to parse scan/xrd filenames
+- Added \`pair_key\` and \`pair_role\` fields to discovery and API response
+- Sorted paired items adjacently (scan before xrd)
+
+**Frontend:**
+- \`StreamView\` groups paired items into \`span 2\` grid containers
+- \`VizCard\` shows SCAN/XRD role badge on paired items
+
+## Testing
+
+- Paired MAXIMA items render side by side
+- Unpaired items (HELIX, non-scan/xrd MAXIMA) render normally
+- No regressions in other views
+
+Closes #ISSUE_NUMBER" \
+  --base main
+```
+
+Replace `#ISSUE_NUMBER` with the actual number.
+
 ## Verification Checklist
 
-- [ ] `_extract_pair_info` correctly parses `_scan.png` and `_xrd.png` filenames
-- [ ] MAXIMA items in `/api/visualizations` include `pair_key` and `pair_role`
-- [ ] Paired items appear adjacent in the API response (scan before xrd)
-- [ ] StreamView renders pairs in side-by-side containers
-- [ ] Unpaired items (HELIX, or MAXIMA without scan/xrd suffix) render normally
-- [ ] Pair role labels appear on paired VizCards
-- [ ] No regressions in HELIX rendering or other views
-- [ ] Commit message: "feat: group MAXIMA scan/xrd pairs side by side"
+- [ ] GitHub issue created
+- [ ] `_extract_pair_info` correctly parses filenames
+- [ ] MAXIMA items in API include `pair_key` and `pair_role`
+- [ ] Paired items appear adjacent in API response
+- [ ] StreamView renders pairs side by side
+- [ ] Unpaired items render normally
+- [ ] Pair role labels appear on VizCards
+- [ ] No regressions
+- [ ] Branch pushed, PR created and linked to issue
