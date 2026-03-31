@@ -1,3 +1,4 @@
+import os
 import re
 import logging
 import time
@@ -9,6 +10,30 @@ from .girder_client import girder
 logger = logging.getLogger(__name__)
 
 IGSN_PATTERN = re.compile(r"(JH[A-Z]{4}\d{5}(-\d+)?)")
+
+
+def _extract_pair_info(filename):
+    """Extract pair key and role from a MAXIMA filename.
+
+    Returns (pair_key, pair_role) or (None, None) if not part of a pair.
+    Example:
+      'JHXMAL00005_..._0_765_scan.png' -> ('JHXMAL00005_..._0_765', 'scan')
+      'JHXMAL00005_..._0_765_xrd.png'  -> ('JHXMAL00005_..._0_765', 'xrd')
+    """
+    stem = os.path.splitext(filename)[0]
+    if stem.endswith("_scan"):
+        return stem[:-5], "scan"
+    elif stem.endswith("_xrd"):
+        return stem[:-4], "xrd"
+    return None, None
+
+
+def _pair_sort_key(item):
+    """Sort key that groups pairs together, scan before xrd."""
+    pk = item.get("pair_key") or item["name"]
+    role_order = {"scan": 0, "xrd": 1}
+    role = role_order.get(item.get("pair_role"), 2)
+    return (item.get("created", ""), pk, role)
 
 _cache = {
     "visualizations": [],
@@ -106,6 +131,7 @@ def _discover_maxima(base_folder_id, limit):
             folder_path = f"MAXIMA / {exp_folder['name']}"
             if raw_folder:
                 folder_path += " / raw"
+            pair_key, pair_role = _extract_pair_info(item["name"])
             results.append({
                 "id": item["_id"],
                 "name": item["name"],
@@ -116,11 +142,14 @@ def _discover_maxima(base_folder_id, limit):
                 "created": item.get("created", datetime.now(timezone.utc).isoformat()),
                 "file_id": file_id,
                 "metadata": item.get("meta", {}),
+                "pair_key": pair_key,
+                "pair_role": pair_role,
             })
 
         if len(results) >= limit:
             break
 
+    results.sort(key=_pair_sort_key, reverse=True)
     return results
 
 

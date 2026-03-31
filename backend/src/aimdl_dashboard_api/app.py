@@ -106,6 +106,8 @@ def list_visualizations(
             file_id=v["file_id"],
             thumbnail_url=f"/api/visualizations/{v['id']}/image",
             metadata=v["metadata"],
+            pair_key=v.get("pair_key"),
+            pair_role=v.get("pair_role"),
         )
         for v in items
     ]

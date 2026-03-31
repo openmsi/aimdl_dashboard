@@ -28,6 +28,26 @@ export default function VizCard({ viz, spotlight = false, onClick }) {
         e.currentTarget.style.transform = "translateY(0)";
       }}
     >
+      {viz.pairRole && (
+        <div
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            zIndex: 2,
+            background: `${instColor}20`,
+            border: `1px solid ${instColor}40`,
+            borderRadius: "4px",
+            padding: "2px 8px",
+            fontSize: "9px",
+            fontFamily: "'IBM Plex Mono', monospace",
+            color: instColor,
+            textTransform: "uppercase",
+          }}
+        >
+          {viz.pairRole}
+        </div>
+      )}
       {viz.status === "processing" && (
         <div
           style={{
