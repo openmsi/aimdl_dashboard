@@ -3,6 +3,7 @@ export default function ViewModeSelector({ mode, setMode }) {
     { key: "stream", label: "Live Stream", icon: "◉" },
     { key: "spotlight", label: "Spotlight", icon: "◎" },
     { key: "sample", label: "By Sample", icon: "⊞" },
+    { key: "movie", label: "Movie", icon: "▶" },
   ];
   return (
     <div style={{ display: "flex", gap: "4px" }}>

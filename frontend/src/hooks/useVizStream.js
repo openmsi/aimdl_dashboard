@@ -23,7 +23,7 @@ export function generateMockViz(id) {
   };
 }
 
-function mapApiViz(viz) {
+export function mapApiViz(viz) {
   return {
     id: viz.id,
     instrument: viz.instrument,
@@ -38,6 +38,7 @@ function mapApiViz(viz) {
     metadata: viz.metadata,
     pairKey: viz.pair_key || null,
     pairRole: viz.pair_role || null,
+    position: viz.position || null,
     status: "complete",
   };
 }

@@ -6,6 +6,7 @@ import InstrumentTab from "./InstrumentTab";
 import StreamView from "./StreamView";
 import SpotlightView from "./SpotlightView";
 import SampleComparisonView from "./SampleComparisonView";
+import MovieView from "./MovieView";
 import VizDetailModal from "./VizDetailModal";
 import StatusBar from "./StatusBar";
 
@@ -26,7 +27,7 @@ export default function Dashboard() {
       setFilter(inst.toUpperCase());
     }
     const view = params.get("view");
-    if (view && ["stream", "spotlight", "sample"].includes(view)) {
+    if (view && ["stream", "spotlight", "sample", "movie"].includes(view)) {
       setViewMode(view);
     }
   }, []);
@@ -109,6 +110,8 @@ export default function Dashboard() {
             <SampleComparisonView data={filtered} />
           </div>
         )}
+
+        {viewMode === "movie" && <MovieView data={data} />}
       </div>
 
       {selectedViz && (

@@ -15,9 +15,16 @@ class Visualization(BaseModel):
     metadata: dict = {}
     pair_key: str | None = None
     pair_role: str | None = None
+    position: str | None = None
 
 
 class VisualizationList(BaseModel):
     items: list[Visualization]
     total: int
     instrument_counts: dict[str, int]
+
+
+class SampleVisualizationList(BaseModel):
+    items: list[Visualization]
+    total: int
+    igsn: str
