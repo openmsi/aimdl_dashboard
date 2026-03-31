@@ -13,6 +13,8 @@ class Visualization(BaseModel):
     file_id: str
     thumbnail_url: str
     metadata: dict = {}
+    pair_key: str | None = None
+    pair_role: str | None = None
 
 
 class VisualizationList(BaseModel):
