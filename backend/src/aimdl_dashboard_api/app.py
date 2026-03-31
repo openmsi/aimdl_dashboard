@@ -16,6 +16,7 @@ from .discovery import (
     resolve_instrument_folders,
     refresh_cache,
     get_cached_visualizations,
+    get_cached_viz_by_id,
     get_instrument_counts,
 )
 from .models import Visualization, VisualizationList
@@ -120,10 +121,9 @@ def get_visualization_image(item_id: str):
     if not girder.connected:
         raise HTTPException(503, "Girder not connected")
 
-    items = get_cached_visualizations()
-    viz = next((v for v in items if v["id"] == item_id), None)
+    viz = get_cached_viz_by_id(item_id)
     if not viz:
-        raise HTTPException(404, "Visualization not found")
+        raise HTTPException(404, "Visualization not found in cache")
 
     try:
         data = girder.download_file_bytes(viz["file_id"])
