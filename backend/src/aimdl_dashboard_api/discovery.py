@@ -179,14 +179,17 @@ def refresh_cache(per_instrument_limit=30):
         all_items.extend(items)
     all_items.sort(key=lambda x: x["created"], reverse=True)
     _cache["visualizations"] = all_items
+
+    # Build ID index for O(1) lookup by the image proxy
     _cache_by_id.clear()
     for item in all_items:
         _cache_by_id[item["id"]] = item
+
     _cache["last_refresh"] = time.time()
     elapsed = time.time() - start
     logger.info(
-        "Cache refreshed: %d visualizations in %.1fs",
-        len(_cache["visualizations"]), elapsed,
+        "Cache refreshed: %d visualizations (%d indexed) in %.1fs",
+        len(_cache["visualizations"]), len(_cache_by_id), elapsed,
     )
 
 
