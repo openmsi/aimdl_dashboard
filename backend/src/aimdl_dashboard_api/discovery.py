@@ -12,6 +12,23 @@ logger = logging.getLogger(__name__)
 IGSN_PATTERN = re.compile(r"(JH[A-Z]{4}\d{5}(-\d+)?)")
 
 
+def _extract_position(folder_name, instrument):
+    """Extract a position identifier from the folder name."""
+    if instrument == "MAXIMA":
+        # Pattern: {IGSN}_{24-hex-chars}_{position}_{YYYY-MM-DD}_{time}
+        m = re.match(
+            r'^[A-Z0-9-]+_[0-9a-f]{24}_(.+?)_\d{4}-\d{2}-\d{2}_',
+            folder_name
+        )
+        if m:
+            return m.group(1)
+    elif instrument == "HELIX":
+        m = re.search(r'shot(\d+)', folder_name)
+        if m:
+            return f"shot{m.group(1)}"
+    return None
+
+
 def _extract_pair_info(filename):
     """Extract pair key and role from a MAXIMA filename.
 
@@ -81,6 +98,7 @@ def _discover_helix(base_folder_id, limit):
                     continue
                 file_id = files[0]["_id"]
                 folder_path = f"HELIX / {igsn_folder['name']} / {shot_folder['name']}"
+                position = _extract_position(shot_folder["name"], "HELIX")
                 results.append({
                     "id": item["_id"],
                     "name": item["name"],
@@ -91,6 +109,7 @@ def _discover_helix(base_folder_id, limit):
                     "created": item.get("created", datetime.now(timezone.utc).isoformat()),
                     "file_id": file_id,
                     "metadata": item.get("meta", {}),
+                    "position": position,
                 })
 
             if len(results) >= limit:
@@ -132,6 +151,7 @@ def _discover_maxima(base_folder_id, limit):
             if raw_folder:
                 folder_path += " / raw"
             pair_key, pair_role = _extract_pair_info(item["name"])
+            position = _extract_position(exp_folder["name"], "MAXIMA")
             results.append({
                 "id": item["_id"],
                 "name": item["name"],
@@ -144,6 +164,7 @@ def _discover_maxima(base_folder_id, limit):
                 "metadata": item.get("meta", {}),
                 "pair_key": pair_key,
                 "pair_role": pair_role,
+                "position": position,
             })
 
         if len(results) >= limit:

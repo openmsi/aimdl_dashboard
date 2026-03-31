@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
@@ -19,7 +20,7 @@ from .discovery import (
     get_cached_viz_by_id,
     get_instrument_counts,
 )
-from .models import Visualization, VisualizationList
+from .models import Visualization, VisualizationList, SampleVisualizationList
 
 logging.basicConfig(
     level=logging.INFO,
@@ -108,6 +109,7 @@ def list_visualizations(
             metadata=v["metadata"],
             pair_key=v.get("pair_key"),
             pair_role=v.get("pair_role"),
+            position=v.get("position"),
         )
         for v in items
     ]
@@ -115,6 +117,46 @@ def list_visualizations(
         items=viz_list,
         total=len(viz_list),
         instrument_counts=counts,
+    )
+
+
+@app.get("/api/visualizations/sample/{igsn}", response_model=SampleVisualizationList)
+def get_sample_visualizations(
+    igsn: str,
+    instrument: Optional[str] = Query(None),
+):
+    """Return all visualizations for a sample, sorted by position."""
+    items = get_cached_visualizations(igsn=igsn, limit=500)
+    if instrument:
+        items = [v for v in items if v["instrument"] == instrument]
+
+    def position_sort_key(v):
+        pos = v.get("position") or ""
+        parts = re.findall(r'\d+', pos)
+        return tuple(int(p) for p in parts) if parts else (pos,)
+
+    items.sort(key=position_sort_key)
+
+    viz_list = [
+        Visualization(
+            id=v["id"],
+            name=v["name"],
+            instrument=v["instrument"],
+            igsn=v["igsn"],
+            sample=v["sample"],
+            folder_path=v["folder_path"],
+            created=v["created"],
+            file_id=v["file_id"],
+            thumbnail_url=f"/api/visualizations/{v['id']}/image",
+            metadata=v["metadata"],
+            pair_key=v.get("pair_key"),
+            pair_role=v.get("pair_role"),
+            position=v.get("position"),
+        )
+        for v in items
+    ]
+    return SampleVisualizationList(
+        items=viz_list, total=len(viz_list), igsn=igsn,
     )
 
 
