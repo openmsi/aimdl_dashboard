@@ -1,6 +1,7 @@
 import ViewModeSelector from "./ViewModeSelector";
+import ZoomControl from "./ZoomControl";
 
-export default function Header({ viewMode, setViewMode }) {
+export default function Header({ viewMode, setViewMode, zoom, setZoom }) {
   return (
     <div
       style={{
@@ -38,7 +39,11 @@ export default function Header({ viewMode, setViewMode }) {
           </div>
         </div>
       </div>
-      <ViewModeSelector mode={viewMode} setMode={setViewMode} />
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <ViewModeSelector mode={viewMode} setMode={setViewMode} />
+        <div style={{ width: "1px", height: "20px", background: "#1e2740" }} />
+        <ZoomControl zoom={zoom} setZoom={setZoom} />
+      </div>
     </div>
   );
 }

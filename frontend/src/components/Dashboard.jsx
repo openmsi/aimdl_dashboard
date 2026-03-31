@@ -13,6 +13,11 @@ export default function Dashboard() {
   const [filter, setFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("stream");
   const [selectedViz, setSelectedViz] = useState(null);
+  const [zoom, setZoom] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const z = parseInt(params.get("zoom"));
+    return (z >= 1 && z <= 5) ? z : 3;
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -25,6 +30,16 @@ export default function Dashboard() {
       setViewMode(view);
     }
   }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location);
+    if (zoom === 3) {
+      url.searchParams.delete("zoom");
+    } else {
+      url.searchParams.set("zoom", zoom);
+    }
+    window.history.replaceState({}, "", url);
+  }, [zoom]);
 
   const { data, filtered, counts, lastUpdate } = useVizStream({ filter });
 
@@ -39,7 +54,7 @@ export default function Dashboard() {
         flexDirection: "column",
       }}
     >
-      <Header viewMode={viewMode} setViewMode={setViewMode} />
+      <Header viewMode={viewMode} setViewMode={setViewMode} zoom={zoom} setZoom={setZoom} />
 
       <div
         style={{
@@ -86,7 +101,7 @@ export default function Dashboard() {
         {viewMode === "spotlight" && <SpotlightView filtered={filtered} />}
 
         {viewMode === "stream" && (
-          <StreamView filtered={filtered} onSelect={setSelectedViz} />
+          <StreamView filtered={filtered} onSelect={setSelectedViz} zoom={zoom} />
         )}
 
         {viewMode === "sample" && (
