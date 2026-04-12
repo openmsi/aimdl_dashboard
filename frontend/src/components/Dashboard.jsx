@@ -9,6 +9,7 @@ import SampleComparisonView from "./SampleComparisonView";
 import MovieView from "./MovieView";
 import VizDetailModal from "./VizDetailModal";
 import StatusBar from "./StatusBar";
+import ThroughputHero from "./ThroughputHero";
 
 export default function Dashboard() {
   const [filter, setFilter] = useState("ALL");
@@ -97,6 +98,8 @@ export default function Dashboard() {
           </span>
         </div>
       </div>
+
+      <ThroughputHero />
 
       <div style={{ flex: 1, padding: "20px 24px", overflow: "auto" }}>
         {viewMode === "spotlight" && <SpotlightView filtered={filtered} />}
