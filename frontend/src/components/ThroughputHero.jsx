@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { INSTRUMENTS, INSTRUMENT_COLORS, STREAM_COUNTER_URL } from "../config";
+import { INSTRUMENTS, INSTRUMENT_COLORS, STREAM_COUNTER_URL, API_CONFIG } from "../config";
 
 const MOCK_DATA = {
   total_samples: 0,
@@ -132,29 +132,77 @@ function ContributionBars({ data, metric }) {
   );
 }
 
+function mapGirderCounts(counts) {
+  const by = counts.by_instrument || {};
+  return {
+    total_samples: 0,
+    total_files: counts.total_files || 0,
+    total_bytes: 0,
+    total_bytes_human: "—",
+    rates: {
+      samples_per_hour: 0,
+      files_per_hour: 0,
+      bytes_per_hour_human: "—",
+    },
+    instruments: {
+      HELIX: { samples: 0, files: by.HELIX?.files || 0, bytes: 0 },
+      MAXIMA: { samples: 0, files: by.MAXIMA?.files || 0, bytes: 0 },
+      SPHINX: { samples: 0, files: by.SPHINX?.files || 0, bytes: 0 },
+    },
+    source: "girder",
+  };
+}
+
 export default function ThroughputHero() {
   const [data, setData] = useState(MOCK_DATA);
   const pollRef = useRef(null);
+  const girderPollRef = useRef(null);
   const esRef = useRef(null);
+  const gotStreamDataRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    const startPolling = () => {
+    const fetchGirderCounts = async () => {
+      if (gotStreamDataRef.current) return;
+      try {
+        const res = await fetch(`${API_CONFIG.baseUrl}/counts`);
+        if (!res.ok) throw new Error("bad status");
+        const json = await res.json();
+        if (!cancelled && !gotStreamDataRef.current && json && json.total_files != null) {
+          setData(mapGirderCounts(json));
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    const startGirderPolling = () => {
+      if (girderPollRef.current) return;
+      fetchGirderCounts();
+      girderPollRef.current = setInterval(fetchGirderCounts, 30000);
+    };
+
+    const startStreamPolling = () => {
       if (pollRef.current) return;
       const fetchOnce = async () => {
         try {
           const res = await fetch(`${STREAM_COUNTER_URL}/api/dashboard/hero`);
           if (!res.ok) throw new Error("bad status");
           const json = await res.json();
-          if (!cancelled) setData(json);
+          if (!cancelled) {
+            gotStreamDataRef.current = true;
+            setData(json);
+          }
         } catch (e) {
-          // keep last good data (or mock)
+          // fall back to girder
         }
       };
       fetchOnce();
       pollRef.current = setInterval(fetchOnce, 10000);
     };
+
+    startGirderPolling();
 
     try {
       const es = new EventSource(`${STREAM_COUNTER_URL}/api/throughput/stream`);
@@ -162,7 +210,10 @@ export default function ThroughputHero() {
       es.onmessage = (ev) => {
         try {
           const json = JSON.parse(ev.data);
-          if (!cancelled) setData(json);
+          if (!cancelled) {
+            gotStreamDataRef.current = true;
+            setData(json);
+          }
         } catch (e) {
           // ignore parse errors
         }
@@ -170,16 +221,17 @@ export default function ThroughputHero() {
       es.onerror = () => {
         es.close();
         esRef.current = null;
-        startPolling();
+        startStreamPolling();
       };
     } catch (e) {
-      startPolling();
+      startStreamPolling();
     }
 
     return () => {
       cancelled = true;
       if (esRef.current) esRef.current.close();
       if (pollRef.current) clearInterval(pollRef.current);
+      if (girderPollRef.current) clearInterval(girderPollRef.current);
     };
   }, []);
 
