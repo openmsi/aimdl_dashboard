@@ -25,8 +25,7 @@ export default function VizDetailModal({ viz, onClose }) {
           border: `1px solid ${instColor}30`,
           borderRadius: "12px",
           width: "min(800px, 90vw)",
-          maxHeight: "90vh",
-          overflow: "auto",
+          overflow: "hidden",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -34,13 +33,7 @@ export default function VizDetailModal({ viz, onClose }) {
           <img
             src={viz.imageUrl}
             alt={viz.vizType}
-            style={{
-              width: "100%",
-              maxHeight: "55vh",
-              objectFit: "contain",
-              background: "#0a0e17",
-              display: "block",
-            }}
+            style={{ width: "100%", height: "auto", objectFit: "contain", background: "#0a0e17" }}
           />
         ) : (
           <MockVisualization viz={viz} large />
@@ -70,7 +63,7 @@ export default function VizDetailModal({ viz, onClose }) {
               ["IGSN", viz.igsn || viz.sample],
               ["Timestamp", new Date(viz.timestamp).toLocaleString()],
               ["Status", viz.status],
-              ["Item ID", `item/${viz.id}`],
+              ["Girder ID", `item/${viz.id}`],
               ...(viz.folderPath ? [["Folder", viz.folderPath]] : []),
             ].map(([label, value]) => (
               <div key={label}>
@@ -81,49 +74,26 @@ export default function VizDetailModal({ viz, onClose }) {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: "16px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {viz.id && (
-              <a
-                href={`https://data.htmdec.org/#item/${viz.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  padding: "8px 16px",
-                  background: "#4ECDC415",
-                  border: "1px solid #4ECDC440",
-                  borderRadius: "6px",
-                  color: "#4ECDC4",
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: "11px",
-                  cursor: "pointer",
-                  textDecoration: "none",
-                  display: "inline-block",
-                }}
-              >
-                Open in Data Portal →
-              </a>
-            )}
-            {viz.igsn && (
-              <a
-                href={`https://data.htmdec.org/#igsn/${viz.igsn}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  padding: "8px 16px",
-                  background: "#A78BFA15",
-                  border: "1px solid #A78BFA40",
-                  borderRadius: "6px",
-                  color: "#A78BFA",
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: "11px",
-                  cursor: "pointer",
-                  textDecoration: "none",
-                  display: "inline-block",
-                }}
-              >
-                View Sample →
-              </a>
-            )}
+          <div style={{ marginTop: "16px", display: "flex", gap: "8px" }}>
+            <a
+              href={`https://data.htmdec.org/#item/${viz.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                padding: "8px 16px",
+                background: "#4ECDC415",
+                border: "1px solid #4ECDC440",
+                borderRadius: "6px",
+                color: "#4ECDC4",
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: "11px",
+                cursor: "pointer",
+                textDecoration: "none",
+                display: "inline-block",
+              }}
+            >
+              Open in Girder →
+            </a>
             <button
               style={{
                 padding: "8px 16px",

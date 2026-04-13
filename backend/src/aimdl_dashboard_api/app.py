@@ -14,11 +14,11 @@ from fastapi.responses import Response
 from .config import DISCOVERY_INTERVAL, DEFAULT_LIMIT
 from .girder_client import girder
 from .discovery import (
+    resolve_instrument_folders,
     refresh_cache,
     get_cached_visualizations,
     get_cached_viz_by_id,
     get_instrument_counts,
-    get_cached_counts,
 )
 from .models import Visualization, VisualizationList, SampleVisualizationList
 
@@ -42,6 +42,7 @@ async def _periodic_refresh():
 async def lifespan(app: FastAPI):
     try:
         girder.connect()
+        resolve_instrument_folders()
         refresh_cache()
     except Exception:
         logger.exception("Startup failed — running without Girder connection")
@@ -61,7 +62,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
     ],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET"],
     allow_headers=["*"],
 )
 
@@ -69,21 +70,6 @@ app.add_middleware(
 @app.get("/api/health")
 def health():
     return {"status": "ok", "girder_connected": girder.connected}
-
-
-@app.get("/api/counts")
-def get_counts():
-    return get_cached_counts()
-
-
-@app.post("/api/refresh")
-def manual_refresh():
-    try:
-        refresh_cache()
-    except Exception as e:
-        logger.exception("Manual refresh failed")
-        raise HTTPException(500, f"Refresh failed: {e}")
-    return {"status": "ok", "total": len(get_cached_visualizations(limit=10000))}
 
 
 @app.get("/api/instruments")

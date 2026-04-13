@@ -1,7 +1,6 @@
 import io
 import logging
 
-import requests
 from girder_client import GirderClient
 
 from .config import GIRDER_API_URL, GIRDER_API_KEY
@@ -24,23 +23,66 @@ class GirderConnection:
     def connected(self):
         return self.client is not None
 
-    def get_aimdl_datafiles(self, data_type, limit=100, offset=0, sort="created", sortdir=-1):
-        return self.client.get(
-            "aimdl/datafiles",
+    def resolve_folder_path(self, collection_id, path_segments):
+        """Walk collection -> folder -> subfolder to resolve a folder ID."""
+        folders = self.client.get(
+            "folder",
             parameters={
-                "dataType": data_type,
-                "limit": limit,
-                "offset": offset,
+                "parentType": "collection",
+                "parentId": collection_id,
+                "limit": 100,
+            },
+        )
+        folder_map = {f["name"]: f for f in folders}
+
+        first_segment = path_segments[0]
+        if first_segment not in folder_map:
+            raise ValueError(
+                f"Folder '{first_segment}' not found in collection {collection_id}"
+            )
+
+        current = folder_map[first_segment]
+
+        for segment in path_segments[1:]:
+            subfolders = self.client.get(
+                "folder",
+                parameters={
+                    "parentType": "folder",
+                    "parentId": current["_id"],
+                    "limit": 100,
+                },
+            )
+            sub_map = {f["name"]: f for f in subfolders}
+            if segment not in sub_map:
+                raise ValueError(
+                    f"Subfolder '{segment}' not found in folder '{current['name']}'"
+                )
+            current = sub_map[segment]
+
+        return current["_id"]
+
+    def list_subfolders(self, folder_id, sort="created", sort_dir=-1, limit=100):
+        return self.client.get(
+            "folder",
+            parameters={
+                "parentType": "folder",
+                "parentId": folder_id,
                 "sort": sort,
-                "sortdir": sortdir,
+                "sortdir": sort_dir,
+                "limit": limit,
             },
         )
 
-    def get_aimdl_counts(self):
-        """Public endpoint — works even without auth."""
-        resp = requests.get(f"{GIRDER_API_URL}/aimdl/count", timeout=15)
-        resp.raise_for_status()
-        return resp.json()
+    def list_items(self, folder_id, sort="created", sort_dir=-1, limit=100):
+        return self.client.get(
+            "item",
+            parameters={
+                "folderId": folder_id,
+                "sort": sort,
+                "sortdir": sort_dir,
+                "limit": limit,
+            },
+        )
 
     def get_item_files(self, item_id):
         return self.client.get(f"item/{item_id}/files")

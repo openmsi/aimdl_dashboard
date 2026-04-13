@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-from typing import Dict, List, Optional
-
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -17,18 +13,18 @@ class Visualization(BaseModel):
     file_id: str
     thumbnail_url: str
     metadata: dict = {}
-    pair_key: Optional[str] = None
-    pair_role: Optional[str] = None
-    position: Optional[str] = None
+    pair_key: str | None = None
+    pair_role: str | None = None
+    position: str | None = None
 
 
 class VisualizationList(BaseModel):
-    items: List[Visualization]
+    items: list[Visualization]
     total: int
-    instrument_counts: Dict[str, int]
+    instrument_counts: dict[str, int]
 
 
 class SampleVisualizationList(BaseModel):
-    items: List[Visualization]
+    items: list[Visualization]
     total: int
     igsn: str
