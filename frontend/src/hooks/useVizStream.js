@@ -43,7 +43,7 @@ export function mapApiViz(viz) {
   };
 }
 
-export default function useVizStream({ filter = "ALL", pollIntervalMs, limit = 60 } = {}) {
+export default function useVizStream({ filter = "ALL", pollIntervalMs } = {}) {
   const interval = pollIntervalMs || API_CONFIG.pollIntervalMs;
   const [data, setData] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(new Date().toISOString());
@@ -60,7 +60,7 @@ export default function useVizStream({ filter = "ALL", pollIntervalMs, limit = 6
     }
     try {
       const url = new URL(`${API_CONFIG.baseUrl}/visualizations`);
-      url.searchParams.set("limit", String(limit));
+      url.searchParams.set("limit", "60");
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -72,7 +72,7 @@ export default function useVizStream({ filter = "ALL", pollIntervalMs, limit = 6
     } catch {
       return false;
     }
-  }, [forceMock, limit]);
+  }, [forceMock]);
 
   // Initial load: try API, fall back to mock
   useEffect(() => {
@@ -118,5 +118,5 @@ export default function useVizStream({ filter = "ALL", pollIntervalMs, limit = 6
     (inst) => (counts[inst] = data.filter((v) => v.instrument === inst).length)
   );
 
-  return { data, filtered, counts, lastUpdate, useMock, refetch: fetchFromApi };
+  return { data, filtered, counts, lastUpdate, useMock };
 }

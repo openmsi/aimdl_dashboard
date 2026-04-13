@@ -17,8 +17,6 @@ export const API_CONFIG = {
   pollIntervalMs: 15000,
 };
 
-export const STREAM_COUNTER_URL = "http://localhost:8001";
-
 export const SAMPLE_POSITIONS = ["A1", "A2", "A3", "B1", "B2", "B3", "C1"];
 
 export const VIZ_TYPES = [
