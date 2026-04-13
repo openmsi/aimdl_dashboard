@@ -155,6 +155,8 @@ function mapGirderCounts(counts) {
 
 export default function ThroughputHero() {
   const [data, setData] = useState(MOCK_DATA);
+  const [expanded, setExpanded] = useState(false);
+  const [hasStreamData, setHasStreamData] = useState(false);
   const pollRef = useRef(null);
   const girderPollRef = useRef(null);
   const esRef = useRef(null);
@@ -192,6 +194,8 @@ export default function ThroughputHero() {
           const json = await res.json();
           if (!cancelled) {
             gotStreamDataRef.current = true;
+            setHasStreamData(true);
+            setExpanded(true);
             setData(json);
           }
         } catch (e) {
@@ -212,6 +216,8 @@ export default function ThroughputHero() {
           const json = JSON.parse(ev.data);
           if (!cancelled) {
             gotStreamDataRef.current = true;
+            setHasStreamData(true);
+            setExpanded(true);
             setData(json);
           }
         } catch (e) {
@@ -237,14 +243,63 @@ export default function ThroughputHero() {
 
   const rates = data.rates || {};
 
+  // Collapsed: show a thin toggle bar
+  if (!expanded) {
+    return (
+      <div
+        onClick={() => setExpanded(true)}
+        style={{
+          padding: "6px 24px",
+          borderBottom: "1px solid #111828",
+          background: "#0a0e18",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "12px",
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: "11px",
+          color: "#3d4d6b",
+          userSelect: "none",
+        }}
+      >
+        <span>▼ Show live counters</span>
+        {!hasStreamData && (
+          <span style={{ fontSize: "10px", color: "#2a3550" }}>
+            (stream counter not connected)
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // Expanded: full hero display
   return (
     <div
       style={{
         padding: "24px",
         borderBottom: "1px solid #111828",
         background: "#0a0e18",
+        position: "relative",
       }}
     >
+      <button
+        onClick={() => setExpanded(false)}
+        style={{
+          position: "absolute",
+          top: "8px",
+          right: "16px",
+          background: "none",
+          border: "none",
+          color: "#3d4d6b",
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: "10px",
+          cursor: "pointer",
+          padding: "4px 8px",
+        }}
+      >
+        ▲ Hide
+      </button>
       <div style={{ display: "flex", alignItems: "stretch", gap: "8px" }}>
         <Counter
           label="Samples Analyzed"
