@@ -1,0 +1,58 @@
+[
+  {
+    "_id": "maxima001",
+    "name": "scan_point_0_765_xrd.png",
+    "meta": {
+      "igsn": "JHXMAL00005",
+      "data_type": "xrd_derived",
+      "prov": {"wasGeneratedBy": "xrd-pipeline-0.3.1"}
+    },
+    "created": "2026-04-13T20:00:00.000Z",
+    "size": 80000,
+    "folderId": "folderM1"
+  },
+  {
+    "_id": "maxima002",
+    "name": "scan_point_0_765_scan.png",
+    "meta": {
+      "igsn": "JHXMAL00005",
+      "data_type": "xrd_derived"
+    },
+    "created": "2026-04-13T20:00:01.000Z",
+    "size": 81000,
+    "folderId": "folderM1"
+  },
+  {
+    "_id": "maxima003",
+    "name": "scan_point_1_200_xrd.png",
+    "meta": {
+      "igsn": "JHXMAL00005",
+      "data_type": "xrd_derived"
+    },
+    "created": "2026-04-13T20:01:00.000Z",
+    "size": 79000,
+    "folderId": "folderM1"
+  },
+  {
+    "_id": "maxima004",
+    "name": "scan_point_1_200_scan.png",
+    "meta": {
+      "igsn": "JHXMAL00005",
+      "data_type": "xrd_derived"
+    },
+    "created": "2026-04-13T20:01:01.000Z",
+    "size": 79500,
+    "folderId": "folderM1"
+  },
+  {
+    "_id": "maxima005",
+    "name": "metadata.json",
+    "meta": {
+      "igsn": "JHXMAL00005",
+      "data_type": "xrd_derived"
+    },
+    "created": "2026-04-13T20:02:00.000Z",
+    "size": 2000,
+    "folderId": "folderM1"
+  }
+]
