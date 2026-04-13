@@ -190,6 +190,8 @@ cython_debug/
 
 # Ruff stuff:
 .ruff_cache/
+.claude/
+CLAUDE.md
 
 # PyPI configuration file
 .pypirc

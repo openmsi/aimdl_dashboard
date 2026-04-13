@@ -1,0 +1,65 @@
+[
+  {
+    "_id": "helix001",
+    "name": "JHAMAL00016-002_shot05_ch1-iq.png",
+    "meta": {
+      "igsn": "JHAMAL00016-002",
+      "data_type": "pdv_alpss_output",
+      "runId": "94c8739c-2d08-47c3-aaaa-111111111111",
+      "prov": {"wasGeneratedBy": "alpss-1.6.0"}
+    },
+    "created": "2026-04-13T22:42:49.000Z",
+    "size": 45000,
+    "folderId": "folderH1"
+  },
+  {
+    "_id": "helix002",
+    "name": "JHAMAL00016-002_shot05_ch1-velocity.png",
+    "meta": {
+      "igsn": "JHAMAL00016-002",
+      "data_type": "pdv_alpss_output",
+      "runId": "94c8739c-2d08-47c3-aaaa-111111111111",
+      "prov": {"wasGeneratedBy": "alpss-1.6.0"}
+    },
+    "created": "2026-04-13T22:42:50.000Z",
+    "size": 46000,
+    "folderId": "folderH1"
+  },
+  {
+    "_id": "helix003",
+    "name": "JHAMAL00017-001_shot01_ch2-iq.png",
+    "meta": {
+      "igsn": "JHAMAL00017-001",
+      "data_type": "pdv_alpss_output",
+      "runId": "94c8739c-2d08-47c3-bbbb-222222222222",
+      "prov": {"wasGeneratedBy": "alpss-1.6.0"}
+    },
+    "created": "2026-04-12T12:00:00.000Z",
+    "size": 44000,
+    "folderId": "folderH2"
+  },
+  {
+    "_id": "helix004",
+    "name": "JHAMAL00017-001_shot01_ch2-velocity.png",
+    "meta": {
+      "igsn": "JHAMAL00017-001",
+      "data_type": "pdv_alpss_output",
+      "runId": "94c8739c-2d08-47c3-bbbb-222222222222",
+      "prov": {"wasGeneratedBy": "alpss-1.6.0"}
+    },
+    "created": "2026-04-12T12:00:01.000Z",
+    "size": 44500,
+    "folderId": "folderH2"
+  },
+  {
+    "_id": "helix005",
+    "name": "alpss_config.yaml",
+    "meta": {
+      "igsn": "JHAMAL00017-001",
+      "data_type": "pdv_alpss_output"
+    },
+    "created": "2026-04-12T12:00:02.000Z",
+    "size": 1200,
+    "folderId": "folderH2"
+  }
+]
