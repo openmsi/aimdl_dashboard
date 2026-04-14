@@ -9,11 +9,14 @@ import SampleComparisonView from "./SampleComparisonView";
 import MovieView from "./MovieView";
 import VizDetailModal from "./VizDetailModal";
 import StatusBar from "./StatusBar";
+import ThroughputHero from "./ThroughputHero";
+import DataControls from "./DataControls";
 
 export default function Dashboard() {
   const [filter, setFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("stream");
   const [selectedViz, setSelectedViz] = useState(null);
+  const [limit, setLimit] = useState(60);
   const [zoom, setZoom] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const z = parseInt(params.get("zoom"));
@@ -42,7 +45,7 @@ export default function Dashboard() {
     window.history.replaceState({}, "", url);
   }, [zoom]);
 
-  const { data, filtered, counts, lastUpdate } = useVizStream({ filter });
+  const { data, filtered, counts, lastUpdate, refetch } = useVizStream({ filter, limit });
 
   return (
     <div
@@ -97,6 +100,15 @@ export default function Dashboard() {
           </span>
         </div>
       </div>
+
+      <ThroughputHero />
+
+      <DataControls
+        limit={limit}
+        setLimit={setLimit}
+        lastUpdate={lastUpdate}
+        onRefresh={refetch}
+      />
 
       <div style={{ flex: 1, padding: "20px 24px", overflow: "auto" }}>
         {viewMode === "spotlight" && <SpotlightView filtered={filtered} />}

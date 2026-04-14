@@ -63,7 +63,7 @@ export default function VizDetailModal({ viz, onClose }) {
               ["IGSN", viz.igsn || viz.sample],
               ["Timestamp", new Date(viz.timestamp).toLocaleString()],
               ["Status", viz.status],
-              ["Girder ID", `item/${viz.id}`],
+              ["Item ID", `item/${viz.id}`],
               ...(viz.folderPath ? [["Folder", viz.folderPath]] : []),
             ].map(([label, value]) => (
               <div key={label}>
@@ -92,8 +92,29 @@ export default function VizDetailModal({ viz, onClose }) {
                 display: "inline-block",
               }}
             >
-              Open in Girder →
+              Open in Data Portal →
             </a>
+            {(viz.igsn || viz.sample) && (
+              <a
+                href={`https://data.htmdec.org/#igsn/${viz.igsn || viz.sample}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: "8px 16px",
+                  background: "#4ECDC415",
+                  border: "1px solid #4ECDC440",
+                  borderRadius: "6px",
+                  color: "#4ECDC4",
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  textDecoration: "none",
+                  display: "inline-block",
+                }}
+              >
+                View Sample →
+              </a>
+            )}
             <button
               style={{
                 padding: "8px 16px",
