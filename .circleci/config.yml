@@ -86,57 +86,6 @@ jobs:
           paths:
             - frontend/dist
 
-  publish-pypi:
-    executor:
-      name: python/default
-      tag: "3.9"
-    working_directory: ~/project
-    steps:
-      - checkout
-      - run:
-          name: Install build tools
-          command: pip install build twine
-      - run:
-          name: Build package
-          command: |
-            cd backend
-            python -m build
-      - run:
-          name: Check package
-          command: |
-            cd backend
-            twine check dist/*
-      - run:
-          name: Publish to PyPI
-          command: |
-            cd backend
-            twine upload dist/* \
-              --username __token__ \
-              --password "$PYPI_API_TOKEN"
-
-  publish-docker:
-    docker:
-      - image: cimg/base:stable
-    working_directory: ~/project
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: default
-      - run:
-          name: Login to Docker Hub
-          command: |
-            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-      - run:
-          name: Build and push
-          command: |
-            # Strip leading "v" from tag: v0.1.0 -> 0.1.0
-            RAW_TAG="${CIRCLE_TAG:-latest}"
-            VERSION="${RAW_TAG#v}"
-            docker build -t htmdec/aimdl-dashboard:${VERSION} .
-            docker build -t htmdec/aimdl-dashboard:latest .
-            docker push htmdec/aimdl-dashboard:${VERSION}
-            docker push htmdec/aimdl-dashboard:latest
-
 workflows:
   test-and-build:
     jobs:
@@ -182,23 +131,3 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - publish-pypi:
-          requires:
-            - test-backend
-            - test-frontend
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-          context: pypi-publish
-      - publish-docker:
-          requires:
-            - test-backend
-            - test-frontend
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
-          context: dockerhub-publish
