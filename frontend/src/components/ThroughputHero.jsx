@@ -174,7 +174,7 @@ export default function ThroughputHero() {
         if (!cancelled && !gotStreamDataRef.current && json && json.total_files != null) {
           setData(mapGirderCounts(json));
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
@@ -198,7 +198,7 @@ export default function ThroughputHero() {
             setExpanded(true);
             setData(json);
           }
-        } catch (e) {
+        } catch {
           // fall back to girder
         }
       };
@@ -220,7 +220,7 @@ export default function ThroughputHero() {
             setExpanded(true);
             setData(json);
           }
-        } catch (e) {
+        } catch {
           // ignore parse errors
         }
       };
@@ -229,7 +229,7 @@ export default function ThroughputHero() {
         esRef.current = null;
         startStreamPolling();
       };
-    } catch (e) {
+    } catch {
       startStreamPolling();
     }
 

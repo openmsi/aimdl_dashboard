@@ -32,7 +32,7 @@ def _extract_pair_info(filename):
 
 def _extract_position_from_name(name):
     """Extract position token like '0_765' from filename if present."""
-    m = re.search(r'_(\d+_\d+)(?:_|\.)', name)
+    m = re.search(r"_(\d+_\d+)(?:_|\.)", name)
     if m:
         return m.group(1)
     return None
@@ -56,8 +56,11 @@ def _fetch_datafiles(data_type: str, total_limit: int) -> List[dict]:
         remaining = total_limit - len(results)
         limit = min(page_size, remaining)
         page = girder.get_aimdl_datafiles(
-            data_type=data_type, limit=limit, offset=offset,
-            sort="created", sortdir=-1,
+            data_type=data_type,
+            limit=limit,
+            offset=offset,
+            sort="created",
+            sortdir=-1,
         )
         if not page:
             break
@@ -162,7 +165,9 @@ def refresh_cache(per_instrument_limit: Optional[int] = None):
     elapsed = time.time() - start
     logger.info(
         "Cache refreshed: %d visualizations (%d indexed) in %.1fs",
-        len(all_items), len(_cache_by_id), elapsed,
+        len(all_items),
+        len(_cache_by_id),
+        elapsed,
     )
 
 

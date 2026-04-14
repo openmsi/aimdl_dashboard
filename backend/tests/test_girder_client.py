@@ -8,8 +8,10 @@ from aimdl_dashboard_api.girder_client import GirderConnection
 
 
 def test_connect_uses_api_key():
-    with patch("aimdl_dashboard_api.girder_client.GirderClient") as MockClient, \
-         patch("aimdl_dashboard_api.girder_client.GIRDER_API_KEY", "test-key"):
+    with (
+        patch("aimdl_dashboard_api.girder_client.GirderClient") as MockClient,
+        patch("aimdl_dashboard_api.girder_client.GIRDER_API_KEY", "test-key"),
+    ):
         conn = GirderConnection()
         conn.connect()
         MockClient.assert_called_once()

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DataControls from '../DataControls';
 
 function mockCounts(data) {
-  global.fetch.mockImplementation((url, opts) => {
+  global.fetch.mockImplementation((url) => {
     const u = String(url);
     if (u.includes('/counts')) {
       return Promise.resolve({

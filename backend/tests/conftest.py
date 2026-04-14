@@ -59,7 +59,7 @@ def _make_mock_girder(helix_items, maxima_items, counts_data, item_files_data):
             data = maxima_items
         else:
             data = []
-        return data[offset:offset + limit]
+        return data[offset : offset + limit]
 
     mock.get_aimdl_datafiles = MagicMock(side_effect=get_datafiles)
     mock.get_aimdl_counts = MagicMock(return_value=counts_data)
@@ -72,11 +72,14 @@ def _make_mock_girder(helix_items, maxima_items, counts_data, item_files_data):
 def mock_girder(helix_items, maxima_items, counts_data, item_files_data):
     mock = _make_mock_girder(helix_items, maxima_items, counts_data, item_files_data)
 
-    with patch("aimdl_dashboard_api.girder_client.girder", mock), \
-         patch("aimdl_dashboard_api.discovery.girder", mock), \
-         patch("aimdl_dashboard_api.app.girder", mock):
+    with (
+        patch("aimdl_dashboard_api.girder_client.girder", mock),
+        patch("aimdl_dashboard_api.discovery.girder", mock),
+        patch("aimdl_dashboard_api.app.girder", mock),
+    ):
         # Reset discovery cache between tests
         from aimdl_dashboard_api import discovery
+
         discovery._cache["visualizations"] = []
         discovery._cache["counts"] = {}
         discovery._cache["last_refresh"] = 0
