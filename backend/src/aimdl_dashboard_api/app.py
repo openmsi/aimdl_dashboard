@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -10,6 +11,7 @@ from typing import Optional
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 
 from .config import DISCOVERY_INTERVAL, DEFAULT_LIMIT
 from .girder_client import girder
@@ -194,3 +196,8 @@ def get_visualization_image(item_id: str):
     except Exception as e:
         logger.exception("Failed to download image %s", item_id)
         raise HTTPException(502, f"Failed to download from Girder: {e}")
+
+
+_static_dir = os.environ.get("AIMDL_STATIC_DIR", "/app/static")
+if os.path.isdir(_static_dir):
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")

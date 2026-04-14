@@ -214,6 +214,14 @@ on the `igsn` branch, deployed at `data.htmdec.org/api/v1`:
 | `xrf_raw` | MAXIMA | Raw XRF spectra | No |
 | `xrd_calibrant_derived` | MAXIMA | Calibration plots | No |
 
+## Docker
+
+```bash
+docker pull htmdec/aimdl-dashboard:latest
+docker run -p 8000:8000 -e AIMDL_API_KEY="your-key" htmdec/aimdl-dashboard
+# Open http://localhost:8000
+```
+
 ## Deployment
 
 ### Lab Monitors (Kiosk Mode)

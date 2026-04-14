@@ -1,0 +1,15 @@
+.git
+.github
+.circleci
+.claude
+.venv
+__pycache__
+*.pyc
+node_modules
+frontend/dist
+*.egg-info
+.ruff_cache
+.pytest_cache
+.DS_Store
+issues/
+CLAUDE.md
