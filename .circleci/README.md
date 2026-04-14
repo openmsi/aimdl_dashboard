@@ -35,18 +35,49 @@ Executors:
 
 ## Required environment variables
 
-None for the current test workflow. The backend tests never hit the
+None for the `test-and-build` workflow. The backend tests never hit the
 real Girder API, and the frontend tests never make real network calls.
 
-Reserved for future publish/deploy jobs (not yet wired up):
+### Release workflow secrets (contexts)
 
-| Variable        | Used by                | Purpose                                       |
-|-----------------|------------------------|-----------------------------------------------|
-| `AIMDL_API_KEY` | future deploy job      | Girder API key for `data.htmdec.org`          |
-| `GIRDER_API_URL`| future deploy job      | Override Girder base URL (default production) |
+The `release` workflow runs only on tags matching `/^v.*/` and requires
+two CircleCI **contexts** (shared across htmdec repos — not project-level
+env vars). Create them under **Organization Settings → Contexts**.
 
-When these are needed, add them as CircleCI project environment
-variables (not in `config.yml`).
+**Context: `pypi-publish`**
+
+| Variable         | Purpose                                                   |
+|------------------|-----------------------------------------------------------|
+| `PYPI_API_TOKEN` | API token from <https://pypi.org/manage/account/> (scope: project `aimdl-dashboard-api`) |
+
+**Context: `dockerhub-publish`**
+
+| Variable            | Purpose                                            |
+|---------------------|----------------------------------------------------|
+| `DOCKERHUB_USERNAME`| Docker Hub username (e.g. `htmdec`)                |
+| `DOCKERHUB_TOKEN`   | Docker Hub access token with push rights to `htmdec/aimdl-dashboard` |
+
+## Release workflow
+
+`release` runs in parallel to `test-and-build` when a Git tag matching
+`v*` is pushed. It re-runs lint + tests, then publishes:
+
+| Job             | Publishes                                                  |
+|-----------------|------------------------------------------------------------|
+| `publish-pypi`  | `aimdl-dashboard-api` sdist + wheel to PyPI                |
+| `publish-docker`| `htmdec/aimdl-dashboard:<version>` and `:latest` to Docker Hub |
+
+The Docker tag strips the leading `v` from `CIRCLE_TAG`, so tag
+`v0.1.0` publishes `htmdec/aimdl-dashboard:0.1.0`. PyPI and Docker
+publish are independent — one failing does not block the other.
+
+### Setup checklist
+
+1. Connect `htmdec/aimdl_dashboard` to CircleCI
+2. Create the `pypi-publish` and `dockerhub-publish` contexts above
+3. Create the Docker Hub repo `htmdec/aimdl-dashboard`
+4. Register `aimdl-dashboard-api` on PyPI (or enable trusted publishers)
+5. Push a test tag `v0.1.0-rc1` to verify the pipeline end-to-end
 
 ## Running the same checks locally
 

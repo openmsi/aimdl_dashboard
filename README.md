@@ -85,13 +85,73 @@ zeros for samples, bytes, and rates.
 
 ## Quick Start
 
-### Prerequisites
+There are three ways to run the dashboard, from simplest to most flexible.
 
-- Python 3.9+
-- Node.js / npm
+### Option 1: Docker (recommended for most users)
+
+The Docker image packages the frontend and backend into a single container.
+No Python, Node.js, or build tools needed on the host — just Docker and
+a Girder API key.
+
+```bash
+docker pull htmdec/aimdl-dashboard:latest
+docker run -p 8000:8000 -e AIMDL_API_KEY="your-key" htmdec/aimdl-dashboard
+```
+
+Open http://localhost:8000. The container serves both the React frontend
+and the FastAPI backend on a single port. The pre-built frontend is bundled
+as static files inside the image and served by FastAPI alongside the API
+endpoints — no separate frontend process needed.
+
+To customize the number of visualizations loaded per instrument:
+
+```bash
+docker run -p 8000:8000 \
+  -e AIMDL_API_KEY="your-key" \
+  -e PER_INSTRUMENT_LIMIT=500 \
+  htmdec/aimdl-dashboard
+```
+
+**With docker-compose** (includes optional stream counter for live rates):
+
+```yaml
+services:
+  dashboard:
+    image: htmdec/aimdl-dashboard:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - AIMDL_API_KEY
+      - PER_INSTRUMENT_LIMIT=100
+    restart: unless-stopped
+
+  # Optional: uncomment for real-time counter animation during experiments
+  # Requires access to the AIMD-L Kafka broker.
+  # stream-counter:
+  #   image: htmdec/stream-counter:latest
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     - AIMDL_API_KEY
+  #     - KAFKA_BOOTSTRAP_SERVERS=your-broker:9092
+  #   restart: unless-stopped
+```
+
+```bash
+export AIMDL_API_KEY="your-key"
+docker compose up
+```
+
+### Option 2: Local development (separate backend + frontend)
+
+Use this when actively developing the dashboard code. Requires Python 3.9+
+and Node.js/npm on the host.
+
+**Prerequisites:**
+
 - A Girder API key from https://data.htmdec.org → Account → API Keys
 
-### 1. Start the backend (port 8000)
+**Terminal 1 — Backend (port 8000):**
 
 ```bash
 cd backend
@@ -106,7 +166,7 @@ The `--no-reload` flag is recommended. Uvicorn's `--reload` mode uses
 process spawning on macOS which can break the Girder authentication token.
 Use `./run.sh` (with reload) only when actively editing backend Python files.
 
-### 2. Start the frontend (port 5173)
+**Terminal 2 — Frontend (port 5173):**
 
 ```bash
 cd frontend
@@ -116,7 +176,7 @@ npm run dev
 
 Open http://localhost:5173
 
-### 3. (Optional) Start the stream counter (port 8001)
+**Terminal 3 (optional) — Stream counter (port 8001):**
 
 Only needed for real-time throughput counters during active experiments.
 Requires access to the AIMD-L Kafka broker.
@@ -131,7 +191,11 @@ export KAFKA_BOOTSTRAP_SERVERS="your-broker:9092"
 python -m stream_counter --port 8001
 ```
 
-### Mock mode (no backend needed)
+See [RUNNING.md](RUNNING.md) for a detailed startup cheatsheet.
+
+### Option 3: Mock mode (no backend needed)
+
+For UI development or demos without Girder access.
 
 ```bash
 cd frontend
@@ -226,30 +290,65 @@ docker run -p 8000:8000 -e AIMDL_API_KEY="your-key" htmdec/aimdl-dashboard
 
 ### Lab Monitors (Kiosk Mode)
 
+Using the Docker image on a dedicated display machine:
+
 ```bash
+# Start the dashboard container
+docker run -d --restart unless-stopped \
+  -p 8000:8000 \
+  -e AIMDL_API_KEY="your-key" \
+  --name aimdl-dashboard \
+  htmdec/aimdl-dashboard:latest
+
+# Launch Chromium in kiosk mode
 chromium-browser --kiosk --noerrdialogs \
-  "http://dashboard-host:5173/?instrument=MAXIMA&view=spotlight&zoom=2"
+  "http://localhost:8000/?instrument=MAXIMA&view=spotlight&zoom=2"
 ```
 
-### Production Build
+### Building the Docker image locally
+
+```bash
+docker build -t aimdl-dashboard:local .
+docker run -p 8000:8000 -e AIMDL_API_KEY="your-key" aimdl-dashboard:local
+```
+
+### Building the frontend for static hosting
+
+If deploying the frontend separately (without Docker):
 
 ```bash
 cd frontend
 npm run build
 # Serve dist/ with any static file server
+# The backend must be running and CORS-configured for the frontend origin
 ```
+
+### Releasing
+
+1. Update the version in `backend/pyproject.toml`
+2. Commit: `git commit -am "Release vX.Y.Z"`
+3. Tag: `git tag vX.Y.Z`
+4. Push: `git push origin main --tags`
+
+CircleCI will automatically run all tests, then publish to PyPI
+(`pip install aimdl-dashboard-api`) and Docker Hub
+(`docker pull htmdec/aimdl-dashboard`).
 
 ## Project Structure
 
 ```
 aimdl_dashboard/
+├── Dockerfile                      # Multi-stage build (frontend + backend)
+├── docker-compose.yml              # Dashboard + optional stream counter
 ├── backend/
 │   ├── src/aimdl_dashboard_api/
 │   │   ├── app.py            # FastAPI application and routes
+│   │   ├── cli.py            # CLI entry point (aimdl-dashboard command)
 │   │   ├── config.py         # Environment-based configuration
 │   │   ├── discovery.py      # /aimdl API queries and cache management
 │   │   ├── girder_client.py  # Girder connection and API methods
 │   │   └── models.py         # Pydantic response models
+│   ├── tests/                # pytest suite (fully mocked, no network)
 │   ├── pyproject.toml
 │   └── run.sh
 ├── frontend/
@@ -264,6 +363,7 @@ aimdl_dashboard/
 │       ├── hooks/
 │       │   └── useVizStream.js     # Data fetching and polling logic
 │       └── config.js               # API URLs, instrument definitions
+├── .circleci/config.yml            # CI/CD pipeline
 ├── RUNNING.md                      # Detailed startup cheatsheet
 └── README.md                       # This file
 ```
