@@ -106,7 +106,10 @@ def list_visualizations(
     since: Optional[datetime] = Query(None),
 ):
     items = get_cached_visualizations(
-        instrument=instrument, igsn=igsn, limit=limit, since=since,
+        instrument=instrument,
+        igsn=igsn,
+        limit=limit,
+        since=since,
     )
     counts = get_instrument_counts()
     viz_list = [
@@ -146,7 +149,7 @@ def get_sample_visualizations(
 
     def position_sort_key(v):
         pos = v.get("position") or ""
-        parts = re.findall(r'\d+', pos)
+        parts = re.findall(r"\d+", pos)
         return tuple(int(p) for p in parts) if parts else (pos,)
 
     items.sort(key=position_sort_key)
@@ -170,7 +173,9 @@ def get_sample_visualizations(
         for v in items
     ]
     return SampleVisualizationList(
-        items=viz_list, total=len(viz_list), igsn=igsn,
+        items=viz_list,
+        total=len(viz_list),
+        igsn=igsn,
     )
 
 
