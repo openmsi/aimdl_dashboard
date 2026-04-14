@@ -1,0 +1,216 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@2.1
+  node: circleci/node@6.1
+
+jobs:
+  lint-backend:
+    executor:
+      name: python/default
+      tag: "3.9"
+    working_directory: ~/project
+    steps:
+      - checkout
+      - run:
+          name: Install backend dependencies
+          command: |
+            cd backend
+            pip install -e ".[dev]"
+      - run:
+          name: Lint backend
+          command: |
+            cd backend
+            ruff check src/ tests/
+            ruff format --check src/ tests/
+
+  test-backend:
+    executor:
+      name: python/default
+      tag: "3.9"
+    working_directory: ~/project
+    steps:
+      - checkout
+      - run:
+          name: Install backend dependencies
+          command: |
+            cd backend
+            pip install -e ".[dev]"
+      - run:
+          name: Run backend tests
+          command: |
+            cd backend
+            python -m pytest tests/ -v --tb=short --junitxml=test-results/results.xml
+      - store_test_results:
+          path: backend/test-results
+
+  lint-frontend:
+    executor:
+      name: node/default
+      tag: "20"
+    working_directory: ~/project
+    steps:
+      - checkout
+      - node/install-packages:
+          app-dir: frontend
+          pkg-manager: npm
+      - run:
+          name: Lint frontend
+          command: |
+            cd frontend
+            npm run lint
+
+  test-frontend:
+    executor:
+      name: node/default
+      tag: "20"
+    working_directory: ~/project
+    steps:
+      - checkout
+      - node/install-packages:
+          app-dir: frontend
+          pkg-manager: npm
+      - run:
+          name: Run frontend tests
+          command: |
+            cd frontend
+            npm test
+      - store_test_results:
+          path: frontend/test-results
+
+  build-frontend:
+    executor:
+      name: node/default
+      tag: "20"
+    working_directory: ~/project
+    steps:
+      - checkout
+      - node/install-packages:
+          app-dir: frontend
+          pkg-manager: npm
+      - run:
+          name: Build frontend
+          command: |
+            cd frontend
+            npm run build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - frontend/dist
+
+  publish-pypi:
+    executor:
+      name: python/default
+      tag: "3.9"
+    working_directory: ~/project
+    steps:
+      - checkout
+      - run:
+          name: Install build tools
+          command: pip install build twine
+      - run:
+          name: Build package
+          command: |
+            cd backend
+            python -m build
+      - run:
+          name: Check package
+          command: |
+            cd backend
+            twine check dist/*
+      - run:
+          name: Publish to PyPI
+          command: |
+            cd backend
+            twine upload dist/* \
+              --username __token__ \
+              --password "$PYPI_API_TOKEN"
+
+  publish-docker:
+    docker:
+      - image: cimg/base:stable
+    working_directory: ~/project
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: default
+      - run:
+          name: Login to Docker Hub
+          command: |
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      - run:
+          name: Build and push
+          command: |
+            # Strip leading "v" from tag: v0.1.0 -> 0.1.0
+            RAW_TAG="${CIRCLE_TAG:-latest}"
+            VERSION="${RAW_TAG#v}"
+            docker build -t htmdec/aimdl-dashboard:${VERSION} .
+            docker build -t htmdec/aimdl-dashboard:latest .
+            docker push htmdec/aimdl-dashboard:${VERSION}
+            docker push htmdec/aimdl-dashboard:latest
+
+workflows:
+  test-and-build:
+    jobs:
+      - lint-backend
+      - lint-frontend
+      - test-backend:
+          requires:
+            - lint-backend
+      - test-frontend:
+          requires:
+            - lint-frontend
+      - build-frontend:
+          requires:
+            - test-frontend
+
+  release:
+    jobs:
+      - lint-backend:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - lint-frontend:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-backend:
+          requires:
+            - lint-backend
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-frontend:
+          requires:
+            - lint-frontend
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-pypi:
+          requires:
+            - test-backend
+            - test-frontend
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          context: pypi-publish
+      - publish-docker:
+          requires:
+            - test-backend
+            - test-frontend
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          context: dockerhub-publish

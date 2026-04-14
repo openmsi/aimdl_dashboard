@@ -1,258 +1,187 @@
+from __future__ import annotations
+
+import logging
 import os
 import re
-import logging
 import time
 from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
-from .config import AIMDL_COLLECTION_ID, INSTRUMENT_PATHS
+from .config import PER_INSTRUMENT_LIMIT
 from .girder_client import girder
 
 logger = logging.getLogger(__name__)
 
-IGSN_PATTERN = re.compile(r"(JH[A-Z]{4}\d{5}(-\d+)?)")
+DATATYPE_TO_INSTRUMENT = {
+    "pdv_alpss_output": "HELIX",
+    "xrd_derived": "MAXIMA",
+}
 
-
-def _extract_position(folder_name, instrument):
-    """Extract a position identifier from the folder name."""
-    if instrument == "MAXIMA":
-        # Pattern: {IGSN}_{24-hex-chars}_{position}_{YYYY-MM-DD}_{time}
-        m = re.match(
-            r'^[A-Z0-9-]+_[0-9a-f]{24}_(.+?)_\d{4}-\d{2}-\d{2}_',
-            folder_name
-        )
-        if m:
-            return m.group(1)
-    elif instrument == "HELIX":
-        m = re.search(r'shot(\d+)', folder_name)
-        if m:
-            return f"shot{m.group(1)}"
-    return None
+VIZ_DATATYPES = list(DATATYPE_TO_INSTRUMENT.keys())
 
 
 def _extract_pair_info(filename):
-    """Extract pair key and role from a MAXIMA filename.
-
-    Returns (pair_key, pair_role) or (None, None) if not part of a pair.
-    Example:
-      'JHXMAL00005_..._0_765_scan.png' -> ('JHXMAL00005_..._0_765', 'scan')
-      'JHXMAL00005_..._0_765_xrd.png'  -> ('JHXMAL00005_..._0_765', 'xrd')
-    """
+    """Extract pair key and role from a MAXIMA filename."""
     stem = os.path.splitext(filename)[0]
     if stem.endswith("_scan"):
         return stem[:-5], "scan"
-    elif stem.endswith("_xrd"):
+    if stem.endswith("_xrd"):
         return stem[:-4], "xrd"
     return None, None
 
 
-def _pair_sort_key(item):
-    """Sort key that groups pairs together, scan before xrd."""
-    pk = item.get("pair_key") or item["name"]
-    role_order = {"scan": 0, "xrd": 1}
-    role = role_order.get(item.get("pair_role"), 2)
-    return (item.get("created", ""), pk, role)
+def _extract_position_from_name(name):
+    """Extract position token like '0_765' from filename if present."""
+    m = re.search(r"_(\d+_\d+)(?:_|\.)", name)
+    if m:
+        return m.group(1)
+    return None
+
 
 _cache = {
     "visualizations": [],
     "last_refresh": 0,
-    "instrument_folder_ids": {},
+    "counts": {},
 }
 
 _cache_by_id = {}
+_file_id_cache = {}
 
 
-def extract_igsn(folder_name, instrument):
-    if instrument == "HELIX" and "_alpss" in folder_name:
-        return folder_name.split("_alpss")[0]
-    m = IGSN_PATTERN.search(folder_name)
-    if m:
-        return m.group(1)
-    return folder_name.split("_")[0]
-
-
-def _discover_helix(base_folder_id, limit):
-    results = []
-    igsn_folders = girder.list_subfolders(base_folder_id, limit=50)
-    logger.info("HELIX: found %d IGSN folders", len(igsn_folders))
-
-    for igsn_folder in igsn_folders:
-        igsn = extract_igsn(igsn_folder["name"], "HELIX")
-        shot_folders = girder.list_subfolders(igsn_folder["_id"], limit=50)
-
-        for shot_folder in shot_folders:
-            # PNGs may be directly in the shot folder or inside a numbered subfolder (e.g. "1")
-            png_items = []
-            items = girder.list_items(shot_folder["_id"], limit=20)
-            png_items.extend(items)
-
-            sub_folders = girder.list_subfolders(shot_folder["_id"], limit=10)
-            for sf in sub_folders:
-                sf_items = girder.list_items(sf["_id"], limit=20)
-                png_items.extend(sf_items)
-
-            for item in png_items:
-                if not item["name"].lower().endswith(".png"):
-                    continue
-                files = girder.get_item_files(item["_id"])
-                if not files:
-                    continue
-                file_id = files[0]["_id"]
-                folder_path = f"HELIX / {igsn_folder['name']} / {shot_folder['name']}"
-                position = _extract_position(shot_folder["name"], "HELIX")
-                results.append({
-                    "id": item["_id"],
-                    "name": item["name"],
-                    "instrument": "HELIX",
-                    "igsn": igsn,
-                    "sample": igsn,
-                    "folder_path": folder_path,
-                    "created": item.get("created", datetime.now(timezone.utc).isoformat()),
-                    "file_id": file_id,
-                    "metadata": item.get("meta", {}),
-                    "position": position,
-                })
-
-            if len(results) >= limit:
-                break
-        if len(results) >= limit:
+def _fetch_datafiles(data_type, total_limit):
+    # type: (str, int) -> List[dict]
+    results = []  # type: List[dict]
+    offset = 0
+    page_size = 100
+    while len(results) < total_limit:
+        remaining = total_limit - len(results)
+        limit = min(page_size, remaining)
+        page = girder.get_aimdl_datafiles(
+            data_type=data_type,
+            limit=limit,
+            offset=offset,
+            sort="created",
+            sortdir=-1,
+        )
+        if not page:
             break
-
+        results.extend(page)
+        if len(page) < limit:
+            break
+        offset += limit
     return results
 
 
-def _discover_maxima(base_folder_id, limit):
-    results = []
-    experiment_folders = girder.list_subfolders(base_folder_id, limit=50)
-    logger.info("MAXIMA: found %d experiment folders", len(experiment_folders))
+def _build_viz(item, data_type):
+    # type: (dict, str) -> Optional[dict]
+    name = item.get("name", "")
+    if not name.lower().endswith(".png"):
+        return None
 
-    for exp_folder in experiment_folders:
-        igsn = extract_igsn(exp_folder["name"], "MAXIMA")
+    instrument = DATATYPE_TO_INSTRUMENT.get(data_type)
+    meta = item.get("meta") or {}
+    igsn = meta.get("igsn") or ""
+    item_id = item["_id"]
 
-        raw_folders = girder.list_subfolders(exp_folder["_id"], limit=10)
-        raw_folder = None
-        for rf in raw_folders:
-            if rf["name"] == "raw":
-                raw_folder = rf
-                break
-
-        if not raw_folder:
-            items = girder.list_items(exp_folder["_id"], limit=20)
-        else:
-            items = girder.list_items(raw_folder["_id"], limit=20)
-
-        for item in items:
-            if not item["name"].lower().endswith(".png"):
-                continue
-            files = girder.get_item_files(item["_id"])
-            if not files:
-                continue
-            file_id = files[0]["_id"]
-            folder_path = f"MAXIMA / {exp_folder['name']}"
-            if raw_folder:
-                folder_path += " / raw"
-            pair_key, pair_role = _extract_pair_info(item["name"])
-            position = _extract_position(exp_folder["name"], "MAXIMA")
-            results.append({
-                "id": item["_id"],
-                "name": item["name"],
-                "instrument": "MAXIMA",
-                "igsn": igsn,
-                "sample": igsn,
-                "folder_path": folder_path,
-                "created": item.get("created", datetime.now(timezone.utc).isoformat()),
-                "file_id": file_id,
-                "metadata": item.get("meta", {}),
-                "pair_key": pair_key,
-                "pair_role": pair_role,
-                "position": position,
-            })
-
-        if len(results) >= limit:
-            break
-
-    results.sort(key=_pair_sort_key, reverse=True)
-    return results
-
-
-DISCOVERERS = {
-    "HELIX": _discover_helix,
-    "MAXIMA": _discover_maxima,
-}
-
-
-def resolve_instrument_folders():
-    for instrument, path_segments in INSTRUMENT_PATHS.items():
+    file_id = _file_id_cache.get(item_id)
+    if not file_id:
         try:
-            folder_id = girder.resolve_folder_path(
-                AIMDL_COLLECTION_ID, path_segments
-            )
-            _cache["instrument_folder_ids"][instrument] = folder_id
-            logger.info(
-                "Resolved %s folder path %s -> %s",
-                instrument, "/".join(path_segments), folder_id,
-            )
+            files = girder.get_item_files(item_id)
         except Exception:
-            logger.exception("Failed to resolve folder path for %s", instrument)
+            logger.exception("Failed to fetch files for item %s", item_id)
+            return None
+        if not files:
+            return None
+        file_id = files[0]["_id"]
+        _file_id_cache[item_id] = file_id
+
+    pair_key, pair_role = (None, None)
+    if instrument == "MAXIMA":
+        pair_key, pair_role = _extract_pair_info(name)
+
+    position = _extract_position_from_name(name)
+
+    created = item.get("created") or datetime.now(timezone.utc).isoformat()
+
+    return {
+        "id": item_id,
+        "name": name,
+        "instrument": instrument,
+        "igsn": igsn,
+        "sample": igsn,
+        "folder_path": f"{instrument} / {igsn}" if igsn else f"{instrument}",
+        "created": created,
+        "file_id": file_id,
+        "metadata": meta,
+        "pair_key": pair_key,
+        "pair_role": pair_role,
+        "position": position,
+    }
 
 
-def discover_visualizations(instrument=None, limit=30):
-    instruments = [instrument] if instrument else list(INSTRUMENT_PATHS.keys())
-    results = []
-
-    for inst in instruments:
-        folder_id = _cache["instrument_folder_ids"].get(inst)
-        if not folder_id:
-            logger.warning("No folder ID for instrument %s, skipping", inst)
-            continue
-
-        discoverer = DISCOVERERS.get(inst)
-        if not discoverer:
-            continue
-
-        try:
-            items = discoverer(folder_id, limit)
-            results.extend(items)
-            logger.info("Discovered %d PNGs for %s", len(items), inst)
-        except Exception:
-            logger.exception("Discovery failed for %s", inst)
-
-    results.sort(key=lambda x: x["created"], reverse=True)
-    return results[:limit]
-
-
-def refresh_cache(per_instrument_limit=30):
-    logger.info("Refreshing visualization cache...")
+def refresh_cache(per_instrument_limit=None):
+    # type: (Optional[int]) -> None
+    limit = per_instrument_limit or PER_INSTRUMENT_LIMIT
+    logger.info("Refreshing visualization cache (limit=%d per datatype)...", limit)
     start = time.time()
-    all_items = []
-    for inst in INSTRUMENT_PATHS:
-        items = discover_visualizations(instrument=inst, limit=per_instrument_limit)
-        all_items.extend(items)
-    all_items.sort(key=lambda x: x["created"], reverse=True)
-    _cache["visualizations"] = all_items
 
-    # Build ID index for O(1) lookup by the image proxy
+    all_items = []  # type: List[dict]
+    for data_type in VIZ_DATATYPES:
+        try:
+            page = _fetch_datafiles(data_type, limit)
+        except Exception:
+            logger.exception("Failed to fetch datafiles for %s", data_type)
+            continue
+        logger.info("%s: fetched %d items", data_type, len(page))
+        for raw in page:
+            viz = _build_viz(raw, data_type)
+            if viz:
+                all_items.append(viz)
+
+    all_items.sort(key=lambda x: x.get("created", ""), reverse=True)
+
+    _cache["visualizations"] = all_items
     _cache_by_id.clear()
     for item in all_items:
         _cache_by_id[item["id"]] = item
+
+    try:
+        raw_counts = girder.get_aimdl_counts()
+    except Exception:
+        logger.exception("Failed to fetch /aimdl/count")
+        raw_counts = {}
+
+    helix_total = int(raw_counts.get("pdv_alpss_output", 0))
+    maxima_total = int(raw_counts.get("xrd_derived", 0))
+    _cache["counts"] = {
+        "total_files": helix_total + maxima_total,
+        "by_instrument": {
+            "HELIX": {"files": helix_total},
+            "MAXIMA": {"files": maxima_total},
+            "SPHINX": {"files": 0},
+        },
+        "source": "girder",
+        "raw": raw_counts,
+    }
 
     _cache["last_refresh"] = time.time()
     elapsed = time.time() - start
     logger.info(
         "Cache refreshed: %d visualizations (%d indexed) in %.1fs",
-        len(_cache["visualizations"]), len(_cache_by_id), elapsed,
+        len(all_items),
+        len(_cache_by_id),
+        elapsed,
     )
 
 
 def get_cached_visualizations(instrument=None, igsn=None, limit=30, since=None):
     items = _cache["visualizations"]
-
     if instrument:
         items = [v for v in items if v["instrument"] == instrument]
     if igsn:
         items = [v for v in items if v["igsn"] == igsn]
     if since:
         items = [v for v in items if v["created"] > since.isoformat()]
-
     return items[:limit]
 
 
@@ -267,3 +196,7 @@ def get_instrument_counts():
         inst = v["instrument"]
         counts[inst] = counts.get(inst, 0) + 1
     return counts
+
+
+def get_cached_counts():
+    return _cache.get("counts", {})

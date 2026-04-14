@@ -13,9 +13,17 @@ export const INSTRUMENT_DESCRIPTIONS = Object.fromEntries(
 );
 
 export const API_CONFIG = {
-  baseUrl: "http://localhost:8000/api",
+  baseUrl:
+    window.location.hostname === "localhost" && window.location.port === "5173"
+      ? "http://localhost:8000/api"
+      : "/api",
   pollIntervalMs: 15000,
 };
+
+export const STREAM_COUNTER_URL =
+  window.location.hostname === "localhost" && window.location.port === "5173"
+    ? "http://localhost:8001"
+    : "";
 
 export const SAMPLE_POSITIONS = ["A1", "A2", "A3", "B1", "B2", "B3", "C1"];
 

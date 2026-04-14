@@ -1,0 +1,20 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - AIMDL_API_KEY
+      - GIRDER_API_URL
+      - PER_INSTRUMENT_LIMIT
+    restart: unless-stopped
+
+  # Optional: uncomment to include the stream counter
+  # stream-counter:
+  #   image: htmdec/stream-counter:latest
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     - AIMDL_API_KEY
+  #     - KAFKA_BOOTSTRAP_SERVERS
+  #   restart: unless-stopped
