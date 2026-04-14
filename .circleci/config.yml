@@ -2,7 +2,6 @@ version: 2.1
 
 orbs:
   python: circleci/python@2.1
-  node: circleci/node@6.1
 
 jobs:
   lint-backend:
@@ -50,14 +49,12 @@ jobs:
     working_directory: ~/project
     steps:
       - checkout
-      - node/install-packages:
-          app-dir: frontend
-          pkg-manager: npm
+      - run:
+          name: Install frontend dependencies
+          command: cd frontend && npm ci
       - run:
           name: Lint frontend
-          command: |
-            cd frontend
-            npm run lint
+          command: cd frontend && npm run lint
 
   test-frontend:
     docker:
@@ -65,16 +62,12 @@ jobs:
     working_directory: ~/project
     steps:
       - checkout
-      - node/install-packages:
-          app-dir: frontend
-          pkg-manager: npm
+      - run:
+          name: Install frontend dependencies
+          command: cd frontend && npm ci
       - run:
           name: Run frontend tests
-          command: |
-            cd frontend
-            npm test
-      - store_test_results:
-          path: frontend/test-results
+          command: cd frontend && npm test
 
   build-frontend:
     docker:
@@ -82,14 +75,12 @@ jobs:
     working_directory: ~/project
     steps:
       - checkout
-      - node/install-packages:
-          app-dir: frontend
-          pkg-manager: npm
+      - run:
+          name: Install frontend dependencies
+          command: cd frontend && npm ci
       - run:
           name: Build frontend
-          command: |
-            cd frontend
-            npm run build
+          command: cd frontend && npm run build
       - persist_to_workspace:
           root: .
           paths:
