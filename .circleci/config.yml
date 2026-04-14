@@ -45,9 +45,8 @@ jobs:
           path: backend/test-results
 
   lint-frontend:
-    executor:
-      name: node/default
-      tag: "20"
+    docker:
+      - image: cimg/node:20.18
     working_directory: ~/project
     steps:
       - checkout
@@ -61,9 +60,8 @@ jobs:
             npm run lint
 
   test-frontend:
-    executor:
-      name: node/default
-      tag: "20"
+    docker:
+      - image: cimg/node:20.18
     working_directory: ~/project
     steps:
       - checkout
@@ -79,9 +77,8 @@ jobs:
           path: frontend/test-results
 
   build-frontend:
-    executor:
-      name: node/default
-      tag: "20"
+    docker:
+      - image: cimg/node:20.18
     working_directory: ~/project
     steps:
       - checkout
