@@ -16,11 +16,11 @@ from fastapi.staticfiles import StaticFiles
 from .config import DISCOVERY_INTERVAL, DEFAULT_LIMIT
 from .girder_client import girder
 from .discovery import (
-    resolve_instrument_folders,
     refresh_cache,
     get_cached_visualizations,
     get_cached_viz_by_id,
     get_instrument_counts,
+    get_cached_counts,
 )
 from .models import Visualization, VisualizationList, SampleVisualizationList
 
@@ -44,7 +44,6 @@ async def _periodic_refresh():
 async def lifespan(app: FastAPI):
     try:
         girder.connect()
-        resolve_instrument_folders()
         refresh_cache()
     except Exception:
         logger.exception("Startup failed — running without Girder connection")
@@ -64,7 +63,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
     ],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -72,6 +71,21 @@ app.add_middleware(
 @app.get("/api/health")
 def health():
     return {"status": "ok", "girder_connected": girder.connected}
+
+
+@app.get("/api/counts")
+def get_counts():
+    return get_cached_counts()
+
+
+@app.post("/api/refresh")
+def manual_refresh():
+    try:
+        refresh_cache()
+    except Exception as e:
+        logger.exception("Manual refresh failed")
+        raise HTTPException(500, f"Refresh failed: {e}")
+    return {"status": "ok", "total": len(get_cached_visualizations(limit=10000))}
 
 
 @app.get("/api/instruments")
@@ -90,7 +104,7 @@ def instruments():
 def list_visualizations(
     instrument: Optional[str] = Query(None),
     igsn: Optional[str] = Query(None),
-    limit: int = Query(DEFAULT_LIMIT, le=200),
+    limit: int = Query(DEFAULT_LIMIT, le=1000),
     since: Optional[datetime] = Query(None),
 ):
     items = get_cached_visualizations(
@@ -184,6 +198,7 @@ def get_visualization_image(item_id: str):
         raise HTTPException(502, f"Failed to download from Girder: {e}")
 
 
+# Serve pre-built frontend in Docker (directory exists only inside the container)
 _static_dir = os.environ.get("AIMDL_STATIC_DIR", "/app/static")
 if os.path.isdir(_static_dir):
     app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
