@@ -94,8 +94,8 @@ No Python, Node.js, or build tools needed on the host — just Docker and
 a Girder API key.
 
 ```bash
-docker pull htmdec/aimdl-dashboard:latest
-docker run -p 8000:8000 -e AIMDL_API_KEY="your-key" htmdec/aimdl-dashboard
+docker pull openmsi/aimdl-dashboard:latest
+docker run -p 8000:8000 -e AIMDL_API_KEY="your-key" openmsi/aimdl-dashboard
 ```
 
 Open http://localhost:8000. The container serves both the React frontend
@@ -109,7 +109,7 @@ To customize the number of visualizations loaded per instrument:
 docker run -p 8000:8000 \
   -e AIMDL_API_KEY="your-key" \
   -e PER_INSTRUMENT_LIMIT=500 \
-  htmdec/aimdl-dashboard
+  openmsi/aimdl-dashboard
 ```
 
 **With docker-compose** (includes optional stream counter for live rates):
@@ -117,7 +117,7 @@ docker run -p 8000:8000 \
 ```yaml
 services:
   dashboard:
-    image: htmdec/aimdl-dashboard:latest
+    image: openmsi/aimdl-dashboard:latest
     ports:
       - "8000:8000"
     environment:
@@ -283,8 +283,8 @@ on the `igsn` branch, deployed at `data.htmdec.org/api/v1`:
 ### Docker
 
 ```bash
-docker pull htmdec/aimdl-dashboard:latest
-docker run -p 8000:8000 -e AIMDL_API_KEY="your-key" htmdec/aimdl-dashboard
+docker pull openmsi/aimdl-dashboard:latest
+docker run -p 8000:8000 -e AIMDL_API_KEY="your-key" openmsi/aimdl-dashboard
 # Open http://localhost:8000
 ```
 
@@ -297,7 +297,7 @@ docker run -d --restart unless-stopped \
   -p 8000:8000 \
   -e AIMDL_API_KEY="your-key" \
   --name aimdl-dashboard \
-  htmdec/aimdl-dashboard:latest
+  openmsi/aimdl-dashboard:latest
 
 chromium-browser --kiosk --noerrdialogs \
   "http://localhost:8000/?instrument=MAXIMA&view=spotlight&zoom=2"
@@ -330,7 +330,7 @@ npm run build
 
 CircleCI will automatically run all tests, then publish to PyPI
 (`pip install aimdl-dashboard-api`) and Docker Hub
-(`docker pull htmdec/aimdl-dashboard`).
+(`docker pull openmsi/aimdl-dashboard`).
 
 ## Project Structure
 
