@@ -37,9 +37,7 @@ class GirderConnection:
 
         first_segment = path_segments[0]
         if first_segment not in folder_map:
-            raise ValueError(
-                f"Folder '{first_segment}' not found in collection {collection_id}"
-            )
+            raise ValueError(f"Folder '{first_segment}' not found in collection {collection_id}")
 
         current = folder_map[first_segment]
 
@@ -54,9 +52,7 @@ class GirderConnection:
             )
             sub_map = {f["name"]: f for f in subfolders}
             if segment not in sub_map:
-                raise ValueError(
-                    f"Subfolder '{segment}' not found in folder '{current['name']}'"
-                )
+                raise ValueError(f"Subfolder '{segment}' not found in folder '{current['name']}'")
             current = sub_map[segment]
 
         return current["_id"]

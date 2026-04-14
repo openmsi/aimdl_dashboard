@@ -1,4 +1,5 @@
 """CLI entry point for the AIMD-L Dashboard API."""
+
 from __future__ import annotations
 
 import argparse
@@ -13,7 +14,8 @@ def main(argv=None):
     parser.add_argument("--host", default="0.0.0.0", help="Bind host")
     parser.add_argument("--port", type=int, default=8000, help="Bind port")
     parser.add_argument(
-        "--reload", action="store_true",
+        "--reload",
+        action="store_true",
         help="Enable auto-reload (dev only, may break Girder auth on macOS)",
     )
     args = parser.parse_args(argv)
