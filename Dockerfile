@@ -1,11 +1,11 @@
-FROM node:20-alpine AS frontend-build
+FROM --platform=linux/amd64 node:20-alpine AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM python:3.9-slim AS runtime
+FROM python:3.10-slim AS runtime
 WORKDIR /app
 
 COPY backend/pyproject.toml backend/README.md ./backend/
