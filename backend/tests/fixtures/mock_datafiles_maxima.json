@@ -1,0 +1,32 @@
+[
+  {
+    "_id": "maxima_item_001",
+    "name": "JHXMAL00005_0_765_xrd.png",
+    "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
+    "created": "2026-04-13T21:30:00+00:00"
+  },
+  {
+    "_id": "maxima_item_002",
+    "name": "JHXMAL00005_0_765_scan.png",
+    "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
+    "created": "2026-04-13T20:30:00+00:00"
+  },
+  {
+    "_id": "maxima_item_003",
+    "name": "JHXMAL00005_1_320_xrd.png",
+    "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
+    "created": "2026-04-13T19:30:00+00:00"
+  },
+  {
+    "_id": "maxima_item_004",
+    "name": "JHXMAL00005_1_320_scan.png",
+    "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
+    "created": "2026-04-13T18:30:00+00:00"
+  },
+  {
+    "_id": "maxima_item_005",
+    "name": "JHXMAL00005_2_100_xrd.png",
+    "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
+    "created": "2026-04-13T17:30:00+00:00"
+  }
+]

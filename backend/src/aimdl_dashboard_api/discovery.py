@@ -173,7 +173,25 @@ def refresh_cache(per_instrument_limit=None):
     )
 
 
-def get_cached_visualizations(instrument=None, igsn=None, limit=30, since=None):
+def get_cached_visualizations(instrument=None, igsn=None, limit=30,
+                               per_instrument=None, since=None):
+    if per_instrument is not None:
+        items = _cache["visualizations"]
+        if igsn:
+            items = [v for v in items if v["igsn"] == igsn]
+        if since:
+            items = [v for v in items if v["created"] > since.isoformat()]
+        groups = {}
+        for v in items:
+            groups.setdefault(v["instrument"], []).append(v)
+        if instrument:
+            groups = {instrument: groups.get(instrument, [])}
+        merged = []
+        for inst, group in groups.items():
+            merged.extend(group[:per_instrument])
+        merged.sort(key=lambda x: x.get("created", ""), reverse=True)
+        return merged
+
     items = _cache["visualizations"]
     if instrument:
         items = [v for v in items if v["instrument"] == instrument]
