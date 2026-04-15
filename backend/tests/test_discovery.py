@@ -48,3 +48,24 @@ def test_per_instrument_exceeds_available(mock_girder):
     refresh_cache()
     items = get_cached_visualizations(per_instrument=100)
     assert len(items) == 10
+
+
+def test_fetch_filters_non_png_items(mock_girder):
+    refresh_cache()
+    items = get_cached_visualizations(limit=100)
+    for v in items:
+        name = v["name"].lower()
+        assert not name.endswith(".tiff")
+        assert not name.endswith(".h5")
+        assert not name.endswith(".csv")
+    maxima = [v for v in items if v["instrument"] == "MAXIMA"]
+    assert len(maxima) > 0
+
+
+def test_per_instrument_works_with_sparse_pngs(mock_girder):
+    refresh_cache()
+    items = get_cached_visualizations(per_instrument=2)
+    helix = [v for v in items if v["instrument"] == "HELIX"]
+    maxima = [v for v in items if v["instrument"] == "MAXIMA"]
+    assert len(helix) > 0
+    assert len(maxima) > 0

@@ -49,25 +49,39 @@ _file_id_cache = {}
 
 def _fetch_datafiles(data_type, total_limit):
     # type: (str, int) -> List[dict]
+    """Fetch PNG items of the given data type from Girder.
+
+    Pages through results until ``total_limit`` PNGs have been collected
+    or the source is exhausted.  Non-PNG items are skipped during
+    pagination so that sparse data types (like xrd_derived, where PNGs
+    are a small fraction of all items) still return visualizations.
+    """
     results = []  # type: List[dict]
     offset = 0
     page_size = 100
-    while len(results) < total_limit:
-        remaining = total_limit - len(results)
-        limit = min(page_size, remaining)
+    max_pages = total_limit * 20  # safety cap on total items scanned
+    while len(results) < total_limit and offset < max_pages:
         page = girder.get_aimdl_datafiles(
             data_type=data_type,
-            limit=limit,
+            limit=page_size,
             offset=offset,
             sort="created",
             sortdir=-1,
         )
         if not page:
             break
-        results.extend(page)
-        if len(page) < limit:
-            break
-        offset += limit
+        for item in page:
+            if item.get("name", "").lower().endswith(".png"):
+                results.append(item)
+                if len(results) >= total_limit:
+                    break
+        logger.debug(
+            "%s: scanned %d items, found %d PNGs so far",
+            data_type, offset + len(page), len(results),
+        )
+        if len(page) < page_size:
+            break  # last page
+        offset += page_size
     return results
 
 
@@ -131,7 +145,7 @@ def refresh_cache(per_instrument_limit=None):
         except Exception:
             logger.exception("Failed to fetch datafiles for %s", data_type)
             continue
-        logger.info("%s: fetched %d items", data_type, len(page))
+        logger.info("%s: fetched %d PNGs", data_type, len(page))
         for raw in page:
             viz = _build_viz(raw, data_type)
             if viz:

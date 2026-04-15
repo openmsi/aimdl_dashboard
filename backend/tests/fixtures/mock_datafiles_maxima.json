@@ -1,5 +1,23 @@
 [
   {
+    "_id": "maxima_nonpng_001",
+    "name": "JHXMAL00005_integration.tiff",
+    "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
+    "created": "2026-04-13T23:00:00+00:00"
+  },
+  {
+    "_id": "maxima_nonpng_002",
+    "name": "JHXMAL00005_calibration.h5",
+    "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
+    "created": "2026-04-13T22:45:00+00:00"
+  },
+  {
+    "_id": "maxima_nonpng_003",
+    "name": "JHXMAL00005_metadata.csv",
+    "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
+    "created": "2026-04-13T22:30:00+00:00"
+  },
+  {
     "_id": "maxima_item_001",
     "name": "JHXMAL00005_0_765_xrd.png",
     "meta": { "igsn": "JHXMAL00005", "data_type": "xrd_derived" },
