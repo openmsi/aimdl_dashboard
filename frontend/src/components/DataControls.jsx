@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { INSTRUMENTS, INSTRUMENT_COLORS, API_CONFIG } from "../config";
 
-const LIMIT_OPTIONS = [30, 60, 120, 250, 500];
+const LIMIT_OPTIONS = [15, 30, 60, 125, 250];
+const FETCH_DEPTH_OPTIONS = [100, 250, 500, 1000];
 
 function formatNumber(n) {
   if (n == null) return "0";
@@ -19,6 +20,7 @@ export default function DataControls({ limit, setLimit, lastUpdate, onRefresh })
   const [counts, setCounts] = useState(null);
   const [tick, setTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchDepth, setFetchDepth] = useState(100);
 
   useEffect(() => {
     const t = setInterval(() => setTick((x) => x + 1), 1000);
@@ -47,7 +49,11 @@ export default function DataControls({ limit, setLimit, lastUpdate, onRefresh })
     setRefreshing(true);
     try {
       try {
-        await fetch(`${API_CONFIG.baseUrl}/refresh`, { method: "POST" });
+        await fetch(`${API_CONFIG.baseUrl}/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ per_instrument_limit: fetchDepth }),
+        });
       } catch {
         // ignore network errors
       }
@@ -56,7 +62,7 @@ export default function DataControls({ limit, setLimit, lastUpdate, onRefresh })
     } finally {
       setRefreshing(false);
     }
-  }, [onRefresh, refreshing, loadCounts]);
+  }, [onRefresh, refreshing, loadCounts, fetchDepth]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -115,7 +121,30 @@ export default function DataControls({ limit, setLimit, lastUpdate, onRefresh })
       </button>
 
       <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: "8px" }}>
-        Show
+        Fetch
+        <select
+          value={String(fetchDepth)}
+          onChange={(e) => setFetchDepth(Number(e.target.value))}
+          style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: "14px",
+            background: "#111828",
+            color: "#c8d3e8",
+            border: "1px solid #22304d",
+            borderRadius: "4px",
+            padding: "4px 8px",
+          }}
+        >
+          {FETCH_DEPTH_OPTIONS.map((n) => (
+            <option key={n} value={String(n)}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: "8px" }}>
+        Per instrument
         <select
           value={String(limit)}
           onChange={(e) => setLimit(Number(e.target.value))}

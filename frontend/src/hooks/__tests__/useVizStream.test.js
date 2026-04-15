@@ -36,34 +36,45 @@ describe('useVizStream', () => {
       ok: true,
       json: () => Promise.resolve({ items: [apiItem] }),
     });
-    const { result } = renderHook(() => useVizStream({ limit: 10 }));
+    const { result } = renderHook(() => useVizStream({ perInstrument: 10 }));
     expect(result.current.data).toEqual([]);
     await vi.waitFor(() => expect(result.current.data.length).toBe(1));
     expect(result.current.data[0].id).toBe('v1');
     expect(result.current.useMock).toBe(false);
   });
 
-  it('respects limit parameter in fetch URL', async () => {
+  it('respects perInstrument parameter in fetch URL', async () => {
     global.fetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ items: [] }),
     });
-    renderHook(() => useVizStream({ limit: 250 }));
+    renderHook(() => useVizStream({ perInstrument: 250 }));
     await vi.waitFor(() => expect(global.fetch).toHaveBeenCalled());
     const url = String(global.fetch.mock.calls[0][0]);
-    expect(url).toContain('limit=250');
+    expect(url).toContain('per_instrument=250');
+  });
+
+  it('defaults to per_instrument=30', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ items: [] }),
+    });
+    renderHook(() => useVizStream());
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    const url = String(global.fetch.mock.calls[0][0]);
+    expect(url).toContain('per_instrument=30');
   });
 
   it('falls back to mock data when API returns error', async () => {
     global.fetch.mockResolvedValue({ ok: false, status: 500 });
-    const { result } = renderHook(() => useVizStream({ limit: 10 }));
+    const { result } = renderHook(() => useVizStream({ perInstrument: 10 }));
     await vi.waitFor(() => expect(result.current.useMock).toBe(true));
     expect(result.current.data.length).toBeGreaterThan(0);
   });
 
   it('mock mode activated by ?mock=true', async () => {
     setSearch('?mock=true');
-    const { result } = renderHook(() => useVizStream({ limit: 10 }));
+    const { result } = renderHook(() => useVizStream({ perInstrument: 10 }));
     await vi.waitFor(() => expect(result.current.useMock).toBe(true));
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -73,7 +84,7 @@ describe('useVizStream', () => {
       ok: true,
       json: () => Promise.resolve({ items: [apiItem] }),
     });
-    renderHook(() => useVizStream({ limit: 10, pollIntervalMs: 5000 }));
+    renderHook(() => useVizStream({ perInstrument: 10, pollIntervalMs: 5000 }));
     await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
     await act(async () => {
       vi.advanceTimersByTime(5000);
@@ -86,7 +97,7 @@ describe('useVizStream', () => {
       ok: true,
       json: () => Promise.resolve({ items: [apiItem] }),
     });
-    const { result } = renderHook(() => useVizStream({ limit: 10 }));
+    const { result } = renderHook(() => useVizStream({ perInstrument: 10 }));
     await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
     await act(async () => {
       await result.current.refetch();

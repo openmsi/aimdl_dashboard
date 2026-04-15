@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [filter, setFilter] = useState("ALL");
   const [viewMode, setViewMode] = useState("stream");
   const [selectedViz, setSelectedViz] = useState(null);
-  const [limit, setLimit] = useState(60);
+  const [limit, setLimit] = useState(30);
   const [zoom, setZoom] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const z = parseInt(params.get("zoom"));
@@ -45,7 +45,7 @@ export default function Dashboard() {
     window.history.replaceState({}, "", url);
   }, [zoom]);
 
-  const { data, filtered, counts, lastUpdate, refetch } = useVizStream({ filter, limit });
+  const { data, filtered, counts, lastUpdate, refetch } = useVizStream({ filter, perInstrument: limit });
 
   return (
     <div
