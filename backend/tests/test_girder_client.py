@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+# from pytest_responses import responses
 from aimdl_dashboard_api.girder_client import GirderConnection
 
 
@@ -42,19 +44,28 @@ def test_get_aimdl_datafiles_params():
     assert params["sortdir"] == -1
 
 
-def test_get_aimdl_counts_calls_public_endpoint():
+def test_get_aimdl_counts_calls_public_endpoint(responses):
+    responses.add(
+        responses.POST,
+        f"{os.environ.get('GIRDER_API_URL')}/api_key/token",
+        status=200,
+        json={
+            "user": {"_id": "userId"},
+            "authToken": {"token": "token"},
+            "expires": "never",
+            "scope": ["all"],
+        },
+    )
+    responses.add(
+        responses.GET,
+        f"{os.environ.get('GIRDER_API_URL')}/aimdl/count",
+        status=200,
+        json={"pdv_alpss_output": 10, "xrd_derived": 20},
+    )
     conn = GirderConnection()
-    with patch("aimdl_dashboard_api.girder_client.requests.get") as mock_get:
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"pdv_alpss_output": 10, "xrd_derived": 20}
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
-
-        result = conn.get_aimdl_counts()
-
+    conn.connect()
+    result = conn.get_aimdl_counts()
     assert result == {"pdv_alpss_output": 10, "xrd_derived": 20}
-    mock_get.assert_called_once()
-    assert "/aimdl/count" in mock_get.call_args[0][0]
 
 
 def test_get_item_files():
@@ -78,12 +89,27 @@ def test_download_file_bytes():
     assert data == b"\x89PNG fake"
 
 
-def test_get_aimdl_counts_network_error():
+def test_get_aimdl_counts_network_error(responses):
+    responses.add(
+        responses.POST,
+        f"{os.environ.get('GIRDER_API_URL')}/api_key/token",
+        status=200,
+        json={
+            "user": {"_id": "userId"},
+            "authToken": {"token": "token"},
+            "expires": "never",
+            "scope": ["all"],
+        },
+    )
+    responses.add(
+        responses.GET,
+        f"{os.environ.get('GIRDER_API_URL')}/aimdl/count",
+        status=503,
+    )
     conn = GirderConnection()
-    with patch("aimdl_dashboard_api.girder_client.requests.get") as mock_get:
-        mock_get.side_effect = Exception("network down")
-        with pytest.raises(Exception, match="network down"):
-            conn.get_aimdl_counts()
+    conn.connect()
+    with pytest.raises(Exception, match="error 503"):
+        conn.get_aimdl_counts()
 
 
 def test_not_connected_by_default():

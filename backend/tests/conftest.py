@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 os.environ.setdefault("AIMDL_API_KEY", "test-key")
+os.environ.setdefault("GIRDER_API_URL", "http://localhost:8000/api/v1")
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
