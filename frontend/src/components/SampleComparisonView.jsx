@@ -1,52 +1,161 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { INSTRUMENTS, INSTRUMENT_COLORS, INSTRUMENT_DESCRIPTIONS } from "../config";
+import { parseIgsn } from "../utils";
 import VizCard from "./VizCard";
 
 export default function SampleComparisonView({ data }) {
-  const samples = [...new Set(data.map((v) => v.sample))].sort();
-  const [selectedSample, setSelectedSample] = useState(samples[0] || "A1");
+  const [selectedBatch, setSelectedBatch] = useState(null);
+  const [selectedSuffix, setSelectedSuffix] = useState("ALL");
+  const [sortMode, setSortMode] = useState("suffix");
 
-  const sampleData = data.filter((v) => v.sample === selectedSample);
-  const byInstrument = {};
-  INSTRUMENTS.forEach((inst) => {
-    byInstrument[inst.id] = sampleData
-      .filter((v) => v.instrument === inst.id)
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  });
+  const batches = useMemo(() => {
+    const bases = new Set();
+    data.forEach((v) => {
+      const b = parseIgsn(v.sample || v.igsn).base;
+      if (b) bases.add(b);
+    });
+    return [...bases].sort();
+  }, [data]);
+
+  useEffect(() => {
+    if (batches.length > 0 && (!selectedBatch || !batches.includes(selectedBatch))) {
+      setSelectedBatch(batches[0]);
+      setSelectedSuffix("ALL");
+    }
+  }, [batches, selectedBatch]);
+
+  const suffixesForBatch = useMemo(() => {
+    if (!selectedBatch) return [];
+    const suffixes = new Set();
+    data.forEach((v) => {
+      const parsed = parseIgsn(v.sample || v.igsn);
+      if (parsed.base === selectedBatch) {
+        suffixes.add(parsed.suffix);
+      }
+    });
+    return [...suffixes].sort((a, b) => {
+      if (a === null) return -1;
+      if (b === null) return 1;
+      return a.localeCompare(b);
+    });
+  }, [data, selectedBatch]);
+
+  const filteredData = useMemo(() => {
+    if (!selectedBatch) return [];
+    return data.filter((v) => {
+      const parsed = parseIgsn(v.sample || v.igsn);
+      if (parsed.base !== selectedBatch) return false;
+      if (selectedSuffix === "ALL") return true;
+      return parsed.suffix === selectedSuffix;
+    });
+  }, [data, selectedBatch, selectedSuffix]);
+
+  const byInstrument = useMemo(() => {
+    const grouped = {};
+    INSTRUMENTS.forEach((inst) => {
+      const items = filteredData.filter((v) => v.instrument === inst.id);
+      if (sortMode === "suffix") {
+        items.sort((a, b) => {
+          const sa = parseIgsn(a.sample || a.igsn).suffix || "";
+          const sb = parseIgsn(b.sample || b.igsn).suffix || "";
+          const cmp = sa.localeCompare(sb);
+          if (cmp !== 0) return cmp;
+          return new Date(b.timestamp) - new Date(a.timestamp);
+        });
+      } else {
+        items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      }
+      grouped[inst.id] = items;
+    });
+    return grouped;
+  }, [filteredData, sortMode]);
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          gap: "6px",
-          marginBottom: "20px",
-          flexWrap: "wrap",
-        }}
-      >
-        {samples.map((s) => (
+      <div style={{ display: "flex", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
+        {batches.map((batch) => (
           <button
-            key={s}
-            onClick={() => setSelectedSample(s)}
+            key={batch}
+            onClick={() => {
+              setSelectedBatch(batch);
+              setSelectedSuffix("ALL");
+            }}
             style={{
               padding: "6px 14px",
-              border:
-                selectedSample === s
-                  ? "1px solid #FFE66D60"
-                  : "1px solid #1e2740",
+              border: selectedBatch === batch ? "1px solid #FFE66D60" : "1px solid #1e2740",
               borderRadius: "5px",
-              background: selectedSample === s ? "#FFE66D10" : "#0d1220",
-              color: selectedSample === s ? "#FFE66D" : "#4a5672",
+              background: selectedBatch === batch ? "#FFE66D10" : "#0d1220",
+              color: selectedBatch === batch ? "#FFE66D" : "#4a5672",
               fontFamily: "'IBM Plex Mono', monospace",
               fontSize: "12px",
               cursor: "pointer",
               transition: "all 0.2s",
             }}
           >
-            {s}
+            {batch}
           </button>
         ))}
       </div>
+
+      {selectedBatch && suffixesForBatch.length > 0 && (
+        <div style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>
+          {["ALL", ...suffixesForBatch].map((sfx) => {
+            const key = sfx === null ? "__base__" : sfx;
+            return (
+              <button
+                key={key}
+                onClick={() => setSelectedSuffix(sfx)}
+                style={{
+                  padding: "4px 10px",
+                  border: selectedSuffix === sfx ? "1px solid #4ECDC460" : "1px solid #1e2740",
+                  borderRadius: "12px",
+                  background: selectedSuffix === sfx ? "#4ECDC410" : "#0d1220",
+                  color: selectedSuffix === sfx ? "#4ECDC4" : "#3d4d6b",
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                {sfx === "ALL" ? "ALL" : sfx === null ? "base" : sfx}
+              </button>
+            );
+          })}
+          <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+            <button
+              onClick={() => setSortMode("suffix")}
+              style={{
+                padding: "3px 8px",
+                border: "none",
+                borderRadius: "3px",
+                background: sortMode === "suffix" ? "#1e274080" : "transparent",
+                color: sortMode === "suffix" ? "#c8d3e8" : "#3d4d6b",
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: "10px",
+                cursor: "pointer",
+              }}
+            >
+              by sub-sample
+            </button>
+            <button
+              onClick={() => setSortMode("time")}
+              style={{
+                padding: "3px 8px",
+                border: "none",
+                borderRadius: "3px",
+                background: sortMode === "time" ? "#1e274080" : "transparent",
+                color: sortMode === "time" ? "#c8d3e8" : "#3d4d6b",
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: "10px",
+                cursor: "pointer",
+              }}
+            >
+              by time
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         style={{
           display: "grid",
@@ -111,12 +220,10 @@ export default function SampleComparisonView({ data }) {
                       borderRadius: "8px",
                     }}
                   >
-                    No data for {selectedSample}
+                    No data for {selectedBatch}
                   </div>
                 ) : (
-                  items
-                    .slice(0, 3)
-                    .map((viz) => <VizCard key={viz.id} viz={viz} />)
+                  items.map((viz) => <VizCard key={viz.id} viz={viz} />)
                 )}
               </div>
             </div>
