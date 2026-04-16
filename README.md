@@ -220,7 +220,9 @@ a single instrument.
 and links to open the file or sample in the HTMDEC data portal.
 
 **View modes** — Live Stream (grid), Spotlight (focus), By Sample
-(grouped by IGSN), Movie (time-lapse).
+(two-tier selector: batch buttons group by synthesis conditions,
+sub-sample pills drill into individual pieces, with sort by
+sub-sample or time), Movie (time-lapse across positions).
 
 ## URL Parameters
 
