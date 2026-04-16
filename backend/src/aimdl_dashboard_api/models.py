@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -14,9 +15,9 @@ class Visualization(BaseModel):
     file_id: str
     thumbnail_url: str
     metadata: dict = {}
-    pair_key: str | None = None
-    pair_role: str | None = None
-    position: str | None = None
+    pair_key: Optional[str] = None
+    pair_role: Optional[str] = None
+    position: Optional[str] = None
 
 
 class VisualizationList(BaseModel):

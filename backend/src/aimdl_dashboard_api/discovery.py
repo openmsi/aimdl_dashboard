@@ -49,25 +49,41 @@ _file_id_cache = {}
 
 def _fetch_datafiles(data_type, total_limit):
     # type: (str, int) -> List[dict]
+    """Fetch PNG items of the given data type from Girder.
+
+    Pages through results until ``total_limit`` PNGs have been collected
+    or the source is exhausted.  Non-PNG items are skipped during
+    pagination so that sparse data types (like xrd_derived, where PNGs
+    are a small fraction of all items) still return visualizations.
+    """
     results = []  # type: List[dict]
     offset = 0
     page_size = 100
-    while len(results) < total_limit:
-        remaining = total_limit - len(results)
-        limit = min(page_size, remaining)
+    max_pages = total_limit * 20  # safety cap on total items scanned
+    while len(results) < total_limit and offset < max_pages:
         page = girder.get_aimdl_datafiles(
             data_type=data_type,
-            limit=limit,
+            limit=page_size,
             offset=offset,
             sort="created",
             sortdir=-1,
         )
         if not page:
             break
-        results.extend(page)
-        if len(page) < limit:
-            break
-        offset += limit
+        for item in page:
+            if item.get("name", "").lower().endswith(".png"):
+                results.append(item)
+                if len(results) >= total_limit:
+                    break
+        logger.debug(
+            "%s: scanned %d items, found %d PNGs so far",
+            data_type,
+            offset + len(page),
+            len(results),
+        )
+        if len(page) < page_size:
+            break  # last page
+        offset += page_size
     return results
 
 
@@ -131,7 +147,7 @@ def refresh_cache(per_instrument_limit=None):
         except Exception:
             logger.exception("Failed to fetch datafiles for %s", data_type)
             continue
-        logger.info("%s: fetched %d items", data_type, len(page))
+        logger.info("%s: fetched %d PNGs", data_type, len(page))
         for raw in page:
             viz = _build_viz(raw, data_type)
             if viz:
@@ -173,7 +189,26 @@ def refresh_cache(per_instrument_limit=None):
     )
 
 
-def get_cached_visualizations(instrument=None, igsn=None, limit=30, since=None):
+def get_cached_visualizations(
+    instrument=None, igsn=None, limit=30, per_instrument=None, since=None
+):
+    if per_instrument is not None:
+        items = _cache["visualizations"]
+        if igsn:
+            items = [v for v in items if v["igsn"] == igsn]
+        if since:
+            items = [v for v in items if v["created"] > since.isoformat()]
+        groups = {}
+        for v in items:
+            groups.setdefault(v["instrument"], []).append(v)
+        if instrument:
+            groups = {instrument: groups.get(instrument, [])}
+        merged = []
+        for inst, group in groups.items():
+            merged.extend(group[:per_instrument])
+        merged.sort(key=lambda x: x.get("created", ""), reverse=True)
+        return merged
+
     items = _cache["visualizations"]
     if instrument:
         items = [v for v in items if v["instrument"] == instrument]

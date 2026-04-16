@@ -49,6 +49,15 @@ filters for `.png` files, resolves their Girder file IDs for image proxying,
 and caches everything in memory. The cache refreshes automatically every
 30 seconds, or on demand via the refresh button.
 
+The API serves items **balanced per instrument** when the `per_instrument`
+query parameter is used: requesting `per_instrument=30` returns up to 30
+from each active instrument regardless of which produced data most
+recently. The legacy `limit` parameter (global cap across all instruments)
+is still supported for backward compatibility. The fetch depth — how many
+items per instrument are cached — can be adjusted at runtime via the
+refresh endpoint's `per_instrument_limit` body parameter without
+restarting the container.
+
 File counts come from `GET /aimdl/count`, a public MongoDB aggregation
 endpoint that returns totals per data type in a single call (e.g.,
 12,300 HELIX files, 15,560 MAXIMA files). These appear in the DataControls
@@ -208,10 +217,15 @@ npm run dev
 **Refresh button** or press **`R`** — triggers an immediate backend cache
 refresh and re-fetches visualizations.
 
-**Show dropdown** (30 / 60 / 120 / 250 / 500) — controls how many
-visualization PNGs to display. The backend fetches up to
-`PER_INSTRUMENT_LIMIT` items per data type from Girder; the frontend
-dropdown selects how many of those to render.
+**Per instrument dropdown** (15 / 30 / 60 / 125 / 250) — controls how
+many visualization PNGs to display from each instrument. Selecting 30
+returns up to 30 HELIX and 30 MAXIMA items, guaranteeing balanced
+representation regardless of which instrument produced data most recently.
+
+**Fetch depth dropdown** (100 / 250 / 500 / 1000) — controls how many
+items per instrument the backend fetches from Girder on the next refresh.
+Higher values pull more historical data into the cache. Takes effect when
+the Refresh button is clicked; does not require a container restart.
 
 **Instrument tabs** (ALL / MAXIMA / HELIX / SPHINX) — filter the grid to
 a single instrument.
@@ -220,7 +234,9 @@ a single instrument.
 and links to open the file or sample in the HTMDEC data portal.
 
 **View modes** — Live Stream (grid), Spotlight (focus), By Sample
-(grouped by IGSN), Movie (time-lapse).
+(two-tier selector: batch buttons group by synthesis conditions,
+sub-sample pills drill into individual pieces, with sort by
+sub-sample or time), Movie (time-lapse across positions).
 
 ## URL Parameters
 
@@ -237,11 +253,11 @@ and links to open the file or sample in the HTMDEC data portal.
 |----------|--------|------|-------------|
 | `/api/health` | GET | No | Connection status |
 | `/api/counts` | GET | No | Authoritative file counts from Girder `/aimdl/count` |
-| `/api/visualizations` | GET | No | Cached PNGs (`?instrument=`, `?igsn=`, `?limit=`, `?since=`) |
+| `/api/visualizations` | GET | No | Cached PNGs (`?instrument=`, `?igsn=`, `?per_instrument=`, `?limit=`, `?since=`) |
 | `/api/visualizations/{id}/image` | GET | No | Proxied PNG download from Girder |
 | `/api/visualizations/sample/{igsn}` | GET | No | All visualizations for a sample |
 | `/api/instruments` | GET | No | Instrument list with loaded counts |
-| `/api/refresh` | POST | No | Trigger immediate cache refresh |
+| `/api/refresh` | POST | No | Trigger cache refresh (optional body: `{"per_instrument_limit": N}`) |
 
 The backend authenticates to Girder with the `AIMDL_API_KEY` on startup.
 All dashboard API endpoints are unauthenticated (local use only).
@@ -265,6 +281,7 @@ on the `igsn` branch, deployed at `data.htmdec.org/api/v1`:
 | `AIMDL_API_KEY` | Yes | — | Dashboard backend |
 | `GIRDER_API_URL` | No | `https://data.htmdec.org/api/v1` | Dashboard backend |
 | `PER_INSTRUMENT_LIMIT` | No | `100` | Dashboard backend (items fetched per data type) |
+| `DEFAULT_PER_INSTRUMENT` | No | `30` | Dashboard backend (items served per instrument in API response) |
 | `KAFKA_BOOTSTRAP_SERVERS` | For stream counter | `localhost:9092` | Stream counter |
 
 ## Data Types

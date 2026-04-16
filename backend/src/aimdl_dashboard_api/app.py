@@ -12,8 +12,11 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from .config import DISCOVERY_INTERVAL, DEFAULT_LIMIT
+
+
 from .girder_client import girder
 from .discovery import (
     refresh_cache,
@@ -23,6 +26,11 @@ from .discovery import (
     get_cached_counts,
 )
 from .models import Visualization, VisualizationList, SampleVisualizationList
+
+
+class RefreshRequest(BaseModel):
+    per_instrument_limit: Optional[int] = None
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -79,9 +87,10 @@ def get_counts():
 
 
 @app.post("/api/refresh")
-def manual_refresh():
+def manual_refresh(body: Optional[RefreshRequest] = None):
+    pil = body.per_instrument_limit if body else None
     try:
-        refresh_cache()
+        refresh_cache(per_instrument_limit=pil)
     except Exception as e:
         logger.exception("Manual refresh failed")
         raise HTTPException(500, f"Refresh failed: {e}")
@@ -105,14 +114,23 @@ def list_visualizations(
     instrument: Optional[str] = Query(None),
     igsn: Optional[str] = Query(None),
     limit: int = Query(DEFAULT_LIMIT, le=1000),
+    per_instrument: Optional[int] = Query(None, le=500),
     since: Optional[datetime] = Query(None),
 ):
-    items = get_cached_visualizations(
-        instrument=instrument,
-        igsn=igsn,
-        limit=limit,
-        since=since,
-    )
+    if per_instrument is not None:
+        items = get_cached_visualizations(
+            instrument=instrument,
+            igsn=igsn,
+            per_instrument=per_instrument,
+            since=since,
+        )
+    else:
+        items = get_cached_visualizations(
+            instrument=instrument,
+            igsn=igsn,
+            limit=limit,
+            since=since,
+        )
     counts = get_instrument_counts()
     viz_list = [
         Visualization(

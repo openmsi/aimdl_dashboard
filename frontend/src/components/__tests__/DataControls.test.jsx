@@ -24,17 +24,19 @@ describe('DataControls', () => {
     global.fetch.mockReset();
   });
 
-  it('renders refresh button, limit dropdown, and last updated', () => {
+  it('renders refresh button, per-instrument dropdown, and last updated', () => {
     mockCounts({ total_files: 0, by_instrument: {} });
     render(
       <DataControls limit={60} setLimit={() => {}} lastUpdate={new Date().toISOString()} onRefresh={() => {}} />,
     );
     expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toHaveValue('60');
+    expect(screen.getByText(/per instrument/i)).toBeInTheDocument();
+    const combos = screen.getAllByRole('combobox');
+    expect(combos.length).toBe(2);
     expect(screen.getByText(/last updated/i)).toBeInTheDocument();
   });
 
-  it('clicking refresh button calls POST /api/refresh and refetch callback', async () => {
+  it('clicking refresh button calls POST /api/refresh with per_instrument_limit body', async () => {
     mockCounts({ total_files: 0, by_instrument: {} });
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     render(<DataControls limit={60} setLimit={() => {}} lastUpdate={null} onRefresh={onRefresh} />);
@@ -45,15 +47,43 @@ describe('DataControls', () => {
       const calls = global.fetch.mock.calls.map((c) => String(c[0]));
       expect(calls.some((u) => u.includes('/refresh'))).toBe(true);
     });
+    const refreshCall = global.fetch.mock.calls.find((c) => String(c[0]).includes('/refresh'));
+    const opts = refreshCall[1];
+    expect(opts.method).toBe('POST');
+    const body = JSON.parse(opts.body);
+    expect(body).toHaveProperty('per_instrument_limit');
     expect(onRefresh).toHaveBeenCalled();
   });
 
-  it('changing dropdown updates limit via setLimit', async () => {
+  it('changing per-instrument dropdown updates limit via setLimit', async () => {
     mockCounts({ total_files: 0, by_instrument: {} });
     const setLimit = vi.fn();
-    render(<DataControls limit={60} setLimit={setLimit} lastUpdate={null} onRefresh={() => {}} />);
-    await userEvent.selectOptions(screen.getByRole('combobox'), '120');
-    expect(setLimit).toHaveBeenCalledWith(120);
+    render(<DataControls limit={30} setLimit={setLimit} lastUpdate={null} onRefresh={() => {}} />);
+    const perInstrumentSelect = screen.getByDisplayValue('30');
+    await userEvent.selectOptions(perInstrumentSelect, '60');
+    expect(setLimit).toHaveBeenCalledWith(60);
+  });
+
+  it('fetch depth dropdown renders and defaults to 100', () => {
+    mockCounts({ total_files: 0, by_instrument: {} });
+    render(<DataControls limit={30} setLimit={() => {}} lastUpdate={null} onRefresh={() => {}} />);
+    expect(screen.getByDisplayValue('100')).toBeInTheDocument();
+  });
+
+  it('fetch depth dropdown can be changed and is sent in refresh body', async () => {
+    mockCounts({ total_files: 0, by_instrument: {} });
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    render(<DataControls limit={30} setLimit={() => {}} lastUpdate={null} onRefresh={onRefresh} />);
+    const fetchSelect = screen.getByDisplayValue('100');
+    await userEvent.selectOptions(fetchSelect, '500');
+    await userEvent.click(screen.getByRole('button', { name: /refresh/i }));
+    await waitFor(() => {
+      const refreshCall = global.fetch.mock.calls.find((c) => String(c[0]).includes('/refresh'));
+      expect(refreshCall).toBeTruthy();
+    });
+    const refreshCall = global.fetch.mock.calls.find((c) => String(c[0]).includes('/refresh'));
+    const body = JSON.parse(refreshCall[1].body);
+    expect(body.per_instrument_limit).toBe(500);
   });
 
   it('displays instrument counts from /api/counts', async () => {

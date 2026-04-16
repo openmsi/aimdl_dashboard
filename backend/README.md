@@ -39,6 +39,8 @@ at `http://localhost:8000/docs`.
 |------------------|----------|-----------------------------------------------|
 | `AIMDL_API_KEY`  | Yes      | Girder API key for `data.htmdec.org`          |
 | `GIRDER_API_URL` | No       | Override Girder API URL (default: htmdec.org) |
+| `PER_INSTRUMENT_LIMIT`   | No       | Items fetched per data type from Girder on cache refresh (default: `100`) |
+| `DEFAULT_PER_INSTRUMENT` | No       | Items returned per instrument in API responses (default: `30`)            |
 
 ## Documentation
 
