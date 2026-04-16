@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 
 from aimdl_dashboard_api.discovery import refresh_cache, get_cached_visualizations
 

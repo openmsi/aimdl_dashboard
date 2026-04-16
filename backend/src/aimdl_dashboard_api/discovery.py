@@ -77,7 +77,9 @@ def _fetch_datafiles(data_type, total_limit):
                     break
         logger.debug(
             "%s: scanned %d items, found %d PNGs so far",
-            data_type, offset + len(page), len(results),
+            data_type,
+            offset + len(page),
+            len(results),
         )
         if len(page) < page_size:
             break  # last page
@@ -187,8 +189,9 @@ def refresh_cache(per_instrument_limit=None):
     )
 
 
-def get_cached_visualizations(instrument=None, igsn=None, limit=30,
-                               per_instrument=None, since=None):
+def get_cached_visualizations(
+    instrument=None, igsn=None, limit=30, per_instrument=None, since=None
+):
     if per_instrument is not None:
         items = _cache["visualizations"]
         if igsn:

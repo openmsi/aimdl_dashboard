@@ -17,8 +17,6 @@ from pydantic import BaseModel
 from .config import DISCOVERY_INTERVAL, DEFAULT_LIMIT
 
 
-class RefreshRequest(BaseModel):
-    per_instrument_limit: Optional[int] = None
 from .girder_client import girder
 from .discovery import (
     refresh_cache,
@@ -28,6 +26,11 @@ from .discovery import (
     get_cached_counts,
 )
 from .models import Visualization, VisualizationList, SampleVisualizationList
+
+
+class RefreshRequest(BaseModel):
+    per_instrument_limit: Optional[int] = None
+
 
 logging.basicConfig(
     level=logging.INFO,
