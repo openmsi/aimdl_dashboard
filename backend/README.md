@@ -5,8 +5,8 @@ the real-time laboratory dashboard for the Autonomous Instrumented Materials Dis
 Laboratory (AIMD-L) at Johns Hopkins University.
 
 The backend authenticates to the [HTMDEC Girder data portal](https://data.htmdec.org),
-walks instrument folder hierarchies (MAXIMA, HELIX, SPHINX), and proxies visualization
-PNGs to the frontend so the browser never needs Girder credentials.
+uses API query to the MongoDB for all instruments (MAXIMA, HELIX, SPHINX), and proxies visualization
+PNGs to the frontend so the browser never needs Girder credentials. In future versions auth will be added at the browser level and honor Project PID ACLs
 
 ## Installation
 
