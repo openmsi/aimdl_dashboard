@@ -148,7 +148,6 @@ def list_visualizations(
             sample=v["sample"],
             folder_path=v["folder_path"],
             created=v["created"],
-            file_id=v["file_id"],
             thumbnail_url=f"/api/visualizations/{v['id']}/image",
             metadata=v["metadata"],
             pair_key=v.get("pair_key"),
@@ -190,7 +189,6 @@ def get_sample_visualizations(
             sample=v["sample"],
             folder_path=v["folder_path"],
             created=v["created"],
-            file_id=v["file_id"],
             thumbnail_url=f"/api/visualizations/{v['id']}/image",
             metadata=v["metadata"],
             pair_key=v.get("pair_key"),
@@ -215,20 +213,18 @@ def get_visualization_image(item_id: str):
     if not viz:
         raise HTTPException(404, "Visualization not found in cache")
 
-    file_id = viz["file_id"]
-
-    cached = image_cache.get(file_id)
+    cached = image_cache.get(item_id)
     if cached is not None:
-        logger.debug("Image cache hit for file_id=%s", file_id)
+        logger.debug("Image cache hit for item_id=%s", item_id)
         return Response(content=cached, media_type="image/png")
 
     try:
-        data = girder.download_file_bytes(file_id)
+        data = girder.download_item_bytes(item_id)
     except Exception as e:
         logger.exception("Failed to download image %s", item_id)
         raise HTTPException(502, f"Failed to download from Girder: {e}")
 
-    image_cache.set(file_id, data)
+    image_cache.set(item_id, data)
     return Response(content=data, media_type="image/png")
 
 

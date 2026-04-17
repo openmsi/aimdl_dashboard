@@ -68,24 +68,29 @@ def test_get_aimdl_counts_calls_public_endpoint(responses):
     assert result == {"pdv_alpss_output": 10, "xrd_derived": 20}
 
 
-def test_get_item_files():
+def test_download_item_bytes(responses):
+    responses.add(
+        responses.POST,
+        f"{os.environ.get('GIRDER_API_URL')}/api_key/token",
+        status=200,
+        json={
+            "user": {"_id": "userId"},
+            "authToken": {"token": "token"},
+            "expires": "never",
+            "scope": ["all"],
+        },
+    )
     conn = GirderConnection()
-    conn.client = MagicMock()
-    conn.client.get = MagicMock(return_value=[{"_id": "f1"}])
-    result = conn.get_item_files("item123")
-    conn.client.get.assert_called_once_with("item/item123/files")
-    assert result == [{"_id": "f1"}]
+    conn.connect()
 
+    responses.add(
+        responses.GET,
+        f"{os.environ.get('GIRDER_API_URL')}/item/file_abc/download",
+        status=200,
+        body=b"\x89PNG fake",
+    )
 
-def test_download_file_bytes():
-    conn = GirderConnection()
-    conn.client = MagicMock()
-
-    def fake_download(file_id, buf):
-        buf.write(b"\x89PNG fake")
-
-    conn.client.downloadFile = MagicMock(side_effect=fake_download)
-    data = conn.download_file_bytes("file_abc")
+    data = conn.download_item_bytes("file_abc")
     assert data == b"\x89PNG fake"
 
 

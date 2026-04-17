@@ -12,7 +12,6 @@ class Visualization(BaseModel):
     sample: str
     folder_path: str
     created: datetime
-    file_id: str
     thumbnail_url: str
     metadata: dict = {}
     pair_key: Optional[str] = None

@@ -85,7 +85,6 @@ def mock_girder(helix_items, maxima_items, counts_data, item_files_data):
         discovery._cache["counts"] = {}
         discovery._cache["last_refresh"] = 0
         discovery._cache_by_id.clear()
-        discovery._file_id_cache.clear()
         yield mock
 
 
@@ -109,7 +108,6 @@ def sample_viz_data():
             "sample": "JHAMAL00016-002",
             "folder_path": "HELIX / JHAMAL00016-002",
             "created": "2026-04-13T22:42:49.000Z",
-            "file_id": "file_abc123",
             "metadata": {"igsn": "JHAMAL00016-002"},
             "pair_key": None,
             "pair_role": None,
@@ -123,7 +121,6 @@ def sample_viz_data():
             "sample": "JHXMAL00005",
             "folder_path": "MAXIMA / JHXMAL00005",
             "created": "2026-04-13T20:00:00.000Z",
-            "file_id": "file_def456",
             "metadata": {"igsn": "JHXMAL00005"},
             "pair_key": "scan_point_0_765",
             "pair_role": "xrd",

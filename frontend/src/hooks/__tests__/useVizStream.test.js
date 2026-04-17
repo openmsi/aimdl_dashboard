@@ -9,7 +9,6 @@ const apiItem = {
   name: 'XRD Pattern',
   created: '2026-03-23T15:59:06Z',
   folder_path: 'AIMD-L/MAXIMA/automatic_mode/foo',
-  file_id: 'f1',
   metadata: {},
 };
 
