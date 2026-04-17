@@ -14,7 +14,8 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .config import DISCOVERY_INTERVAL, DEFAULT_LIMIT
+from .config import DISCOVERY_INTERVAL, DEFAULT_LIMIT, IMAGE_CACHE_DIR, IMAGE_CACHE_MAX_MB
+from .file_cache import make_image_cache
 
 
 from .girder_client import girder
@@ -26,6 +27,12 @@ from .discovery import (
     get_cached_counts,
 )
 from .models import Visualization, VisualizationList, SampleVisualizationList
+
+
+image_cache = make_image_cache(
+    cache_dir=IMAGE_CACHE_DIR,
+    max_bytes=IMAGE_CACHE_MAX_MB * 1024 * 1024,
+)
 
 
 class RefreshRequest(BaseModel):
@@ -208,12 +215,21 @@ def get_visualization_image(item_id: str):
     if not viz:
         raise HTTPException(404, "Visualization not found in cache")
 
+    file_id = viz["file_id"]
+
+    cached = image_cache.get(file_id)
+    if cached is not None:
+        logger.debug("Image cache hit for file_id=%s", file_id)
+        return Response(content=cached, media_type="image/png")
+
     try:
-        data = girder.download_file_bytes(viz["file_id"])
-        return Response(content=data, media_type="image/png")
+        data = girder.download_file_bytes(file_id)
     except Exception as e:
         logger.exception("Failed to download image %s", item_id)
         raise HTTPException(502, f"Failed to download from Girder: {e}")
+
+    image_cache.set(file_id, data)
+    return Response(content=data, media_type="image/png")
 
 
 # Serve pre-built frontend in Docker (directory exists only inside the container)
