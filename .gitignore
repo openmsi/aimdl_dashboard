@@ -217,3 +217,5 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 issues/
+.claude
+issues
