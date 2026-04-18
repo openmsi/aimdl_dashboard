@@ -44,7 +44,6 @@ _cache = {
 }
 
 _cache_by_id = {}
-_file_id_cache = {}
 
 
 def _fetch_datafiles(data_type, total_limit):
@@ -98,18 +97,6 @@ def _build_viz(item, data_type):
     igsn = meta.get("igsn") or ""
     item_id = item["_id"]
 
-    file_id = _file_id_cache.get(item_id)
-    if not file_id:
-        try:
-            files = girder.get_item_files(item_id)
-        except Exception:
-            logger.exception("Failed to fetch files for item %s", item_id)
-            return None
-        if not files:
-            return None
-        file_id = files[0]["_id"]
-        _file_id_cache[item_id] = file_id
-
     pair_key, pair_role = (None, None)
     if instrument == "MAXIMA":
         pair_key, pair_role = _extract_pair_info(name)
@@ -126,7 +113,6 @@ def _build_viz(item, data_type):
         "sample": igsn,
         "folder_path": f"{instrument} / {igsn}" if igsn else f"{instrument}",
         "created": created,
-        "file_id": file_id,
         "metadata": meta,
         "pair_key": pair_key,
         "pair_role": pair_role,

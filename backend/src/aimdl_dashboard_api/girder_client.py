@@ -58,9 +58,12 @@ class GirderConnection:
     def get_item_files(self, item_id):
         return self.client.get(f"item/{item_id}/files")
 
-    def download_file_bytes(self, file_id):
+    def download_item_bytes(self, item_id):
         buf = io.BytesIO()
-        self.client.downloadFile(file_id, buf)
+        for chunk in self.client.sendRestRequest(
+            "GET", f"item/{item_id}/download", stream=True, jsonResp=False
+        ):
+            buf.write(chunk)
         buf.seek(0)
         return buf.read()
 
