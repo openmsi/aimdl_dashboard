@@ -12,3 +12,9 @@ DEFAULT_LIMIT = 30
 PER_INSTRUMENT_LIMIT = int(os.environ.get("PER_INSTRUMENT_LIMIT", "100"))
 
 DEFAULT_PER_INSTRUMENT = int(os.environ.get("DEFAULT_PER_INSTRUMENT", "30"))
+
+# --- Image file cache ---------------------------------------------------
+# Directory where downloaded Girder images are cached on disk.
+IMAGE_CACHE_DIR = os.environ.get("IMAGE_CACHE_DIR", "/tmp/aimdl_image_cache")
+# Maximum total disk space for the cache in megabytes.
+IMAGE_CACHE_MAX_MB = int(os.environ.get("IMAGE_CACHE_MAX_MB", "500"))

@@ -34,7 +34,6 @@ export function mapApiViz(viz) {
     imageUrl: `${API_CONFIG.baseUrl}/visualizations/${viz.id}/image`,
     folderPath: viz.folder_path,
     igsn: viz.igsn,
-    fileId: viz.file_id,
     metadata: viz.metadata,
     pairKey: viz.pair_key || null,
     pairRole: viz.pair_role || null,
