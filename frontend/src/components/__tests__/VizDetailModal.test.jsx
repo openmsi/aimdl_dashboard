@@ -7,7 +7,9 @@ const baseViz = {
   id: 'abc123',
   instrument: 'MAXIMA',
   sample: 'JHXMAL00005',
-  igsn: 'JHXMAL00005',
+  meta: {
+    igsn: 'JHXMAL00005',
+  },
   vizType: 'XRD Pattern',
   vizColor: '#4ECDC4',
   timestamp: new Date('2026-03-23T15:59:06Z').toISOString(),

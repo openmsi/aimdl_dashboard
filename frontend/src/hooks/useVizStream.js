@@ -4,7 +4,6 @@ import {
   INSTRUMENT_COLORS,
   SAMPLE_POSITIONS,
   VIZ_TYPES,
-  API_CONFIG,
   GIRDER_DATAFILES_URL,
   girderFetch,
   makeGirderImageUrl,
@@ -74,7 +73,7 @@ export function mapApiViz(viz) {
 }
 
 export default function useVizStream({ filter = "ALL", pollIntervalMs, perInstrument = 30 } = {}) {
-  const interval = pollIntervalMs || API_CONFIG.pollIntervalMs;
+  const interval = pollIntervalMs || 15000;
   const [data, setData] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(new Date().toISOString());
   const [useMock, setUseMock] = useState(false);

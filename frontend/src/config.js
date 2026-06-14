@@ -77,14 +77,6 @@ export function makeGirderImageUrl(itemId) {
   return `${GIRDER_API_URL}/item/${itemId}/download?contentDisposition=inline${query}`;
 }
 
-export const API_CONFIG = {
-  baseUrl:
-    window.location.hostname === "localhost" && window.location.port === "5173"
-      ? "http://localhost:8000/api"
-      : "/api",
-  pollIntervalMs: 15000,
-};
-
 export const STREAM_COUNTER_URL =
   window.location.hostname === "localhost" && window.location.port === "5173"
     ? "http://localhost:8001"
