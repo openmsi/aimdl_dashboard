@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { INSTRUMENTS, INSTRUMENT_COLORS, API_CONFIG } from "../config";
+import { INSTRUMENTS, INSTRUMENT_COLORS, GIRDER_COUNTS_URL, girderFetch } from "../config";
 
 const LIMIT_OPTIONS = [15, 30, 60, 125, 250];
 const FETCH_DEPTH_OPTIONS = [100, 250, 500, 1000];
@@ -29,7 +29,7 @@ export default function DataControls({ limit, setLimit, lastUpdate, onRefresh })
 
   const loadCounts = useCallback(async () => {
     try {
-      const res = await fetch(`${API_CONFIG.baseUrl}/counts`);
+      const res = await girderFetch(GIRDER_COUNTS_URL);
       if (!res.ok) return;
       const json = await res.json();
       setCounts(json);
@@ -48,17 +48,8 @@ export default function DataControls({ limit, setLimit, lastUpdate, onRefresh })
     if (refreshing) return;
     setRefreshing(true);
     try {
-      try {
-        await fetch(`${API_CONFIG.baseUrl}/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ per_instrument_limit: fetchDepth }),
-        });
-      } catch {
-        // ignore network errors
-      }
       if (onRefresh) await onRefresh();
-      loadCounts();
+      await loadCounts();
     } finally {
       setRefreshing(false);
     }
