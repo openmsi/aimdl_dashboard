@@ -94,6 +94,8 @@ export default function useVizStream({ filter = "ALL", pollIntervalMs, perInstru
         const params = new URLSearchParams({
           dataType: config.dataType,
           limit: String(perInstrument),
+          sort: "created",
+          sortdir: -1,
           ...(config.qargs || {}),
         });
         const url = `${GIRDER_DATAFILES_URL}?${params.toString()}`;
