@@ -9,7 +9,7 @@ const apiItem = {
   name: 'XRD Pattern.png',
   created: '2026-03-23T15:59:06Z',
   folder_path: 'AIMD-L/MAXIMA/automatic_mode/foo',
-  metadata: { data_type: 'xrd_derived', igsn: 'JHXMAL00005' },
+  meta: { data_type: 'xrd_derived', igsn: 'JHXMAL00005' },
 };
 
 function setSearch(search) {

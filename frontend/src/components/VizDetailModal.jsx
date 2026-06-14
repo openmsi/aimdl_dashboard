@@ -60,7 +60,7 @@ export default function VizDetailModal({ viz, onClose }) {
           >
             {[
               ["Instrument", `${viz.instrument} · ${INSTRUMENT_DESCRIPTIONS[viz.instrument]}`],
-              ["IGSN", viz.igsn || viz.sample],
+              ["IGSN", viz.meta.igsn || viz.sample],
               ["Timestamp", new Date(viz.timestamp).toLocaleString()],
               ["Status", viz.status],
               ["Item ID", `item/${viz.id}`],
@@ -94,9 +94,9 @@ export default function VizDetailModal({ viz, onClose }) {
             >
               Open in Data Portal →
             </a>
-            {(viz.igsn || viz.sample) && (
+            {(viz.meta.igsn || viz.sample) && (
               <a
-                href={`https://data.htmdec.org/#igsn/${viz.igsn || viz.sample}`}
+                href={`https://data.htmdec.org/#igsn/${viz.meta.igsn || viz.sample}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

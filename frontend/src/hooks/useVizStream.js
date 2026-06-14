@@ -51,21 +51,21 @@ export function generateMockViz(id) {
 
 export function mapApiViz(viz) {
   const itemId = viz._id || viz.id;
-  const instrument = viz.instrument || instrumentFromDataType(viz.metadata?.data_type || viz.data_type);
-  const igsn = viz.igsn || viz.sample || viz.metadata?.igsn || "";
+  const instrument = viz.instrument || instrumentFromDataType(viz.meta?.data_type || viz.data_type);
+  const igsn = viz.igsn || viz.sample || viz.meta?.igsn || "";
   const imageUrl = viz.imageUrl || makeGirderImageUrl(itemId);
 
   return {
     id: itemId,
     instrument,
     sample: igsn,
-    vizType: viz.name || viz.metadata?.data_type || "Visualization",
+    vizType: viz.name || viz.meta?.data_type || "Visualization",
     vizColor: INSTRUMENT_COLORS[instrument] || "#888",
     timestamp: viz.created || new Date().toISOString(),
     imageUrl,
     folderPath: viz.folder_path || viz.folderId || null,
     igsn,
-    metadata: viz.metadata || {},
+    meta: viz.meta || {},
     pairKey: viz.pair_key || null,
     pairRole: viz.pair_role || null,
     position: viz.position || null,

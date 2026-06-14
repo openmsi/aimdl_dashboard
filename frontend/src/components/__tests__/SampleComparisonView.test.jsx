@@ -19,7 +19,7 @@ function makeViz(id, { igsn = 'JHAMAL00016-005', instrument = 'HELIX' } = {}) {
     position: null,
     folderPath: `${instrument} / ${igsn}`,
     fileId: `file_${id}`,
-    metadata: {},
+    meta: {},
   };
 }
 
