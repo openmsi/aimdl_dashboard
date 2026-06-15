@@ -38,6 +38,23 @@ export function getGirderAuthHeaders() {
   return token ? { "Girder-Token": token } : {};
 }
 
+export async function logoutGirderToken() {
+  const token = getGirderToken();
+
+  if (token) {
+    try {
+      await fetch(`${GIRDER_API_URL}/user/authentication`, {
+        method: "DELETE",
+        headers: { "Girder-Token": token },
+      });
+    } catch {
+      // Ignore network/auth errors and still clear the saved token.
+    }
+  }
+
+  setGirderToken(null);
+}
+
 export function girderFetch(url, options = {}) {
   return fetch(url, {
     ...options,

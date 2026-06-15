@@ -1,7 +1,15 @@
 import ViewModeSelector from "./ViewModeSelector";
 import ZoomControl from "./ZoomControl";
+import { getGirderToken, logoutGirderToken } from "../config";
 
 export default function Header({ viewMode, setViewMode, zoom, setZoom }) {
+  const isLoggedIn = Boolean(getGirderToken());
+
+  async function handleLogout() {
+    await logoutGirderToken();
+    window.location.reload();
+  }
+
   return (
     <div
       style={{
@@ -40,6 +48,24 @@ export default function Header({ viewMode, setViewMode, zoom, setZoom }) {
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {isLoggedIn && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{
+              border: "1px solid #334155",
+              background: "#111827",
+              color: "#e2e8f4",
+              borderRadius: "999px",
+              padding: "8px 12px",
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            Logout
+          </button>
+        )}
         <ViewModeSelector mode={viewMode} setMode={setViewMode} />
         <div style={{ width: "1px", height: "20px", background: "#1e2740" }} />
         <ZoomControl zoom={zoom} setZoom={setZoom} />
