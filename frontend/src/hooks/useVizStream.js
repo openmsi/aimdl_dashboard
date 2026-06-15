@@ -73,7 +73,7 @@ export function mapApiViz(viz) {
 }
 
 export default function useVizStream({ filter = "ALL", pollIntervalMs, perInstrument = 30 } = {}) {
-  const interval = pollIntervalMs || 15000;
+  const interval = pollIntervalMs || 60000;
   const [data, setData] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(new Date().toISOString());
   const [useMock, setUseMock] = useState(false);

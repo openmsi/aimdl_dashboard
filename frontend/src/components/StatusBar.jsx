@@ -36,7 +36,7 @@ export default function StatusBar({ data, lastUpdate }) {
       <span style={{ marginLeft: "auto" }}>
         Updated {timeAgo(lastUpdate)}
       </span>
-      <span>Polling: 15s</span>
+      <span>Polling: 60s</span>
     </div>
   );
 }
