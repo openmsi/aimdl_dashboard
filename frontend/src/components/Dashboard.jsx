@@ -9,7 +9,6 @@ import SampleComparisonView from "./SampleComparisonView";
 import MovieView from "./MovieView";
 import VizDetailModal from "./VizDetailModal";
 import StatusBar from "./StatusBar";
-import ThroughputHero from "./ThroughputHero";
 import DataControls from "./DataControls";
 
 export default function Dashboard() {
@@ -100,8 +99,6 @@ export default function Dashboard() {
           </span>
         </div>
       </div>
-
-      <ThroughputHero />
 
       <DataControls
         limit={limit}

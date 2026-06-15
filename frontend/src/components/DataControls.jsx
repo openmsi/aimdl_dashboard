@@ -40,7 +40,7 @@ export default function DataControls({ limit, setLimit, lastUpdate, onRefresh })
 
   useEffect(() => {
     loadCounts();
-    const t = setInterval(loadCounts, 30000);
+    const t = setInterval(loadCounts, 60000);
     return () => clearInterval(t);
   }, [loadCounts]);
 
