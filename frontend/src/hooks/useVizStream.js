@@ -102,7 +102,10 @@ export default function useVizStream({ filter = "ALL", pollIntervalMs, perInstru
         const json = await res.json();
         const items = Array.isArray(json) ? json : json.items || json.data || [];
         return items
-          .filter((item) => (item.name || "").toLowerCase().endsWith(".png"))
+          .filter((item) => {
+            const name = (item.name || "").toLowerCase();
+            return name.endsWith(".png") || name.endsWith(".jpg");
+          })
           .map((item) => mapApiViz({ ...item, instrument }));
       });
 
