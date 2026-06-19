@@ -17,10 +17,9 @@ const DATA_TYPE_BY_INSTRUMENT = {
     qargs: { filters: JSON.stringify({ "meta.alpss_output_name": "figure" }) },
   },
   MAXIMA: {
-    dataType: "xrd_derived",
-    qargs: { filters: JSON.stringify({ "name": { "$regex": ".png$" } }) },
+    dataType: "xrd_visualization"
   },
-  SPHINX: { dataType: "xrd_raw" },
+  SPHINX: { dataType: "xrd_raw" }
 };
 
 function instrumentFromDataType(dataType) {
