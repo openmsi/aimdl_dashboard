@@ -20,12 +20,18 @@ export default function VizDetailModal({ viz, onClose }) {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
         style={{
           background: "#0d1220",
           border: `1px solid ${instColor}30`,
           borderRadius: "12px",
           width: "min(800px, 90vw)",
+          maxHeight: "calc(100dvh - 32px)",
           overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          boxSizing: "border-box",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -33,12 +39,19 @@ export default function VizDetailModal({ viz, onClose }) {
           <img
             src={viz.imageUrl}
             alt={viz.vizType}
-            style={{ width: "100%", height: "auto", objectFit: "contain", background: "#0a0e17" }}
+            style={{
+              width: "100%",
+              maxHeight: "min(60dvh, 480px)",
+              height: "auto",
+              objectFit: "contain",
+              background: "#0a0e17",
+              display: "block",
+            }}
           />
         ) : (
           <MockVisualization viz={viz} large />
         )}
-        <div style={{ padding: "20px" }}>
+        <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
           <div
             style={{
               fontFamily: "'IBM Plex Mono', monospace",
