@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { INSTRUMENTS, INSTRUMENT_COLORS, API_CONFIG } from "../config";
+import { INSTRUMENTS, INSTRUMENT_COLORS, GIRDER_DATAFILES_URL, girderFetch } from "../config";
 import { mapApiViz } from "../hooks/useVizStream";
 import MockVisualization from "./MockVisualization";
 
@@ -50,19 +50,31 @@ export default function MovieView({ data }) {
 
   useEffect(() => {
     if (!selectedIgsn) return;
-    setLoading(true);
-    const url = new URL(`${API_CONFIG.baseUrl}/visualizations/sample/${selectedIgsn}`);
-    if (selectedInstrument) {
-      url.searchParams.set("instrument", selectedInstrument);
-    }
-    fetch(url)
-      .then((res) => res.json())
-      .then((json) => {
-        setFrames(json.items.map(mapApiViz));
+
+    const fetchFrames = async () => {
+      setLoading(true);
+      try {
+        const dataTypes = ["pdv_alpss_output", "xrd_derived"];
+        const responses = await Promise.all(
+          dataTypes.map((dataType) => girderFetch(`${GIRDER_DATAFILES_URL}?dataType=${encodeURIComponent(dataType)}&limit=500`))
+        );
+        const items = await Promise.all(responses.map(async (res) => {
+          if (!res.ok) return [];
+          const json = await res.json();
+          const list = Array.isArray(json) ? json : json.items || json.data || [];
+          return list.filter((item) => (item.name || "").toLowerCase().endsWith(".png"));
+        }));
+
+        const filtered = items
+          .flat()
+          .filter((item) => (item.meta?.igsn || "") === selectedIgsn)
+          .filter((item) => !selectedInstrument || item.meta?.data_type === (selectedInstrument === "HELIX" ? "pdv_alpss_output" : "xrd_derived"))
+          .map((item) => mapApiViz({ ...item, instrument: selectedInstrument || (item.meta?.data_type === "pdv_alpss_output" ? "HELIX" : "MAXIMA") }));
+
+        setFrames(filtered);
         setCurrentIndex(0);
         setPlaying(false);
-      })
-      .catch(() => {
+      } catch {
         const filtered = data.filter(
           (v) =>
             (v.igsn || v.sample) === selectedIgsn &&
@@ -71,8 +83,12 @@ export default function MovieView({ data }) {
         setFrames(filtered);
         setCurrentIndex(0);
         setPlaying(false);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFrames();
   }, [selectedIgsn, selectedInstrument, data]);
 
   useEffect(() => {

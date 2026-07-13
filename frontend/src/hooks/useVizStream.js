@@ -1,7 +1,31 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { INSTRUMENTS, INSTRUMENT_COLORS, SAMPLE_POSITIONS, VIZ_TYPES, API_CONFIG } from "../config";
+import {
+  INSTRUMENTS,
+  INSTRUMENT_COLORS,
+  SAMPLE_POSITIONS,
+  VIZ_TYPES,
+  GIRDER_DATAFILES_URL,
+  girderFetch,
+  makeGirderImageUrl,
+} from "../config";
 
 const INSTRUMENT_IDS = INSTRUMENTS.map((i) => i.id);
+
+const DATA_TYPE_BY_INSTRUMENT = {
+  HELIX: {
+    dataType: "pdv_alpss_output",
+    qargs: { filters: JSON.stringify({ "meta.alpss_output_name": "figure" }) },
+  },
+  MAXIMA: {
+    dataType: "xrd_visualization"
+  },
+  SPHINX: { dataType: "xrd_raw" }
+};
+
+function instrumentFromDataType(dataType) {
+  const entry = Object.entries(DATA_TYPE_BY_INSTRUMENT).find(([, config]) => config.dataType === dataType);
+  return entry ? entry[0] : "HELIX";
+}
 
 export function generateMockViz(id) {
   const instrument =
@@ -24,17 +48,22 @@ export function generateMockViz(id) {
 }
 
 export function mapApiViz(viz) {
+  const itemId = viz._id || viz.id;
+  const instrument = viz.instrument || instrumentFromDataType(viz.meta?.data_type || viz.data_type);
+  const igsn = viz.igsn || viz.sample || viz.meta?.igsn || "";
+  const imageUrl = viz.imageUrl || makeGirderImageUrl(itemId);
+
   return {
-    id: viz.id,
-    instrument: viz.instrument,
-    sample: viz.igsn,
-    vizType: viz.name,
-    vizColor: INSTRUMENT_COLORS[viz.instrument] || "#888",
-    timestamp: viz.created,
-    imageUrl: `${API_CONFIG.baseUrl}/visualizations/${viz.id}/image`,
-    folderPath: viz.folder_path,
-    igsn: viz.igsn,
-    metadata: viz.metadata,
+    id: itemId,
+    instrument,
+    sample: igsn,
+    vizType: viz.name || viz.meta?.data_type || "Visualization",
+    vizColor: INSTRUMENT_COLORS[instrument] || "#888",
+    timestamp: viz.created || new Date().toISOString(),
+    imageUrl,
+    folderPath: viz.folder_path || viz.folderId || null,
+    igsn,
+    meta: viz.meta || {},
     pairKey: viz.pair_key || null,
     pairRole: viz.pair_role || null,
     position: viz.position || null,
@@ -43,7 +72,7 @@ export function mapApiViz(viz) {
 }
 
 export default function useVizStream({ filter = "ALL", pollIntervalMs, perInstrument = 30 } = {}) {
-  const interval = pollIntervalMs || API_CONFIG.pollIntervalMs;
+  const interval = pollIntervalMs || 60000;
   const [data, setData] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(new Date().toISOString());
   const [useMock, setUseMock] = useState(false);
@@ -57,12 +86,30 @@ export default function useVizStream({ filter = "ALL", pollIntervalMs, perInstru
       setUseMock(true);
       return false;
     }
+
     try {
-      const url = `${API_CONFIG.baseUrl}/visualizations?per_instrument=${encodeURIComponent(String(perInstrument))}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const mapped = json.items.map(mapApiViz);
+      const requests = Object.entries(DATA_TYPE_BY_INSTRUMENT).map(async ([instrument, config]) => {
+        const params = new URLSearchParams({
+          dataType: config.dataType,
+          limit: String(perInstrument),
+          sort: "created",
+          sortdir: -1,
+          ...(config.qargs || {}),
+        });
+        const url = `${GIRDER_DATAFILES_URL}?${params.toString()}`;
+        const res = await girderFetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const items = Array.isArray(json) ? json : json.items || json.data || [];
+        return items
+          .filter((item) => {
+            const name = (item.name || "").toLowerCase();
+            return name.endsWith(".png") || name.endsWith(".jpg");
+          })
+          .map((item) => mapApiViz({ ...item, instrument }));
+      });
+
+      const mapped = (await Promise.all(requests)).flat().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       setData(mapped);
       setLastUpdate(new Date().toISOString());
       setUseMock(false);

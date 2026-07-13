@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { INSTRUMENTS, INSTRUMENT_COLORS, STREAM_COUNTER_URL, API_CONFIG } from "../config";
+import { INSTRUMENTS, INSTRUMENT_COLORS, STREAM_COUNTER_URL, GIRDER_COUNTS_URL, girderFetch } from "../config";
 
 const MOCK_DATA = {
   total_samples: 0,
@@ -168,7 +168,7 @@ export default function ThroughputHero() {
     const fetchGirderCounts = async () => {
       if (gotStreamDataRef.current) return;
       try {
-        const res = await fetch(`${API_CONFIG.baseUrl}/counts`);
+        const res = await girderFetch(GIRDER_COUNTS_URL);
         if (!res.ok) throw new Error("bad status");
         const json = await res.json();
         if (!cancelled && !gotStreamDataRef.current && json && json.total_files != null) {
